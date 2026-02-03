@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function LoginPage() {
@@ -66,88 +62,105 @@ export default function LoginPage() {
   const displayError = localError || error;
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Welcome back</CardTitle>
-        <CardDescription>
-          Sign in to your GovernanceOS account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="w-full max-w-md">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
+        <p className="text-white/50">Sign in to your GovernanceOS account</p>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-sm">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {displayError && (
-            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               {displayError}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              leftIcon={<Mail className="h-4 w-4" />}
-              required
-              autoComplete="email"
-            />
+            <label htmlFor="email" className="block text-sm font-medium text-white/70">
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <label htmlFor="password" className="block text-sm font-medium text-white/70">
+                Password
+              </label>
               <Link
                 href="/auth/reset-password"
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
               >
                 Forgot password?
               </Link>
             </div>
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              leftIcon={<Lock className="h-4 w-4" />}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              }
-              required
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
-          <Button type="submit" className="w-full" isLoading={isSubmitting}>
-            Sign In
-          </Button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isSubmitting ? (
+              <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                Sign In
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
         </form>
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t" />
+            <div className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            <span className="bg-[#0a0a0a] px-3 text-white/40">Or continue with</span>
           </div>
         </div>
 
-        <Button
+        <button
           type="button"
-          variant="outline"
-          className="w-full"
           onClick={handleGoogleSignIn}
           disabled={isSubmitting}
+          className="w-full flex items-center justify-center gap-3 py-3 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+          <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               fill="#4285F4"
@@ -166,16 +179,15 @@ export default function LoginPage() {
             />
           </svg>
           Continue with Google
-        </Button>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-primary hover:underline font-medium">
-            Sign up
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+        </button>
+      </div>
+
+      <p className="text-center text-sm text-white/40 mt-6">
+        Don&apos;t have an account?{' '}
+        <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+          Sign up
+        </Link>
+      </p>
+    </div>
   );
 }

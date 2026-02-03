@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function SignupPage() {
@@ -84,108 +80,135 @@ export default function SignupPage() {
   const displayError = localError || error;
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Create your account</CardTitle>
-        <CardDescription>
-          Start your 14-day free trial of GovernanceOS
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="w-full max-w-md">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Create your account</h1>
+        <p className="text-white/50">Start your 14-day free trial of GovernanceOS</p>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-sm">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {displayError && (
-            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               {displayError}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="displayName">Full Name</Label>
-            <Input
-              id="displayName"
-              type="text"
-              placeholder="John Andersson"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              leftIcon={<User className="h-4 w-4" />}
-              required
-              autoComplete="name"
-            />
+            <label htmlFor="displayName" className="block text-sm font-medium text-white/70">
+              Full Name
+            </label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <input
+                id="displayName"
+                type="text"
+                placeholder="John Andersson"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+                autoComplete="name"
+                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Work Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              leftIcon={<Mail className="h-4 w-4" />}
-              required
-              autoComplete="email"
-            />
+            <label htmlFor="email" className="block text-sm font-medium text-white/70">
+              Work Email
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              leftIcon={<Lock className="h-4 w-4" />}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              }
-              required
-              autoComplete="new-password"
-            />
+            <label htmlFor="password" className="block text-sm font-medium text-white/70">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              leftIcon={<Lock className="h-4 w-4" />}
-              required
-              autoComplete="new-password"
-            />
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/70">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+              <input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+              />
+            </div>
           </div>
 
-          <Button type="submit" className="w-full" isLoading={isSubmitting}>
-            Create Account
-          </Button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isSubmitting ? (
+              <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                Create Account
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
         </form>
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t" />
+            <div className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            <span className="bg-[#0a0a0a] px-3 text-white/40">Or continue with</span>
           </div>
         </div>
 
-        <Button
+        <button
           type="button"
-          variant="outline"
-          className="w-full"
           onClick={handleGoogleSignIn}
           disabled={isSubmitting}
+          className="w-full flex items-center justify-center gap-3 py-3 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+          <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               fill="#4285F4"
@@ -204,27 +227,26 @@ export default function SignupPage() {
             />
           </svg>
           Continue with Google
-        </Button>
+        </button>
 
-        <p className="text-xs text-muted-foreground text-center mt-4">
+        <p className="text-xs text-white/40 text-center mt-6">
           By creating an account, you agree to our{' '}
-          <Link href="/terms" className="text-primary hover:underline">
+          <Link href="/terms" className="text-blue-400 hover:text-blue-300 transition-colors">
             Terms of Service
           </Link>{' '}
           and{' '}
-          <Link href="/privacy" className="text-primary hover:underline">
+          <Link href="/privacy" className="text-blue-400 hover:text-blue-300 transition-colors">
             Privacy Policy
           </Link>
         </p>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/auth/login" className="text-primary hover:underline font-medium">
-            Sign in
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+      </div>
+
+      <p className="text-center text-sm text-white/40 mt-6">
+        Already have an account?{' '}
+        <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+          Sign in
+        </Link>
+      </p>
+    </div>
   );
 }

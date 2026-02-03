@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Briefcase, Users, ArrowRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { Building2, Users, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { collections, Timestamp, writeBatch, db } from '@/lib/firebase';
 import type { Tenant, Member } from '@/types/schema';
@@ -115,119 +112,158 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Briefcase className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Welcome to GovernanceOS</CardTitle>
-          <CardDescription>
-            Let&apos;s set up your organization to get started
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === 1 && (
-            <div className="space-y-6">
-              <div className="text-center py-4">
-                <h3 className="font-semibold mb-2">What would you like to do?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Choose how you want to get started with GovernanceOS
-                </p>
-              </div>
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      {/* Background effects */}
+      <div className="fixed inset-0 bg-gradient-to-b from-blue-950/20 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.1),transparent_50%)] pointer-events-none" />
 
-              <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto py-4"
-                  onClick={() => setStep(2)}
-                >
-                  <Building2 className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium">Create a new organization</p>
-                    <p className="text-xs text-muted-foreground">
-                      Set up your company or board
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 ml-auto" />
-                </Button>
+      {/* Header */}
+      <header className="relative z-10 p-6">
+        <Link href="/" className="flex items-center gap-2 w-fit text-white">
+          <span className="text-xl font-semibold tracking-tight">GovernanceOS</span>
+        </Link>
+      </header>
 
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-auto py-4"
-                  disabled
-                >
-                  <Users className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium">Join an existing organization</p>
-                    <p className="text-xs text-muted-foreground">
-                      You&apos;ll need an invitation from an admin
-                    </p>
-                  </div>
-                </Button>
-              </div>
+      {/* Main Content */}
+      <main className="relative z-10 flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-6">
+              <Building2 className="w-8 h-8 text-white" />
             </div>
-          )}
+            <h1 className="text-3xl font-bold text-white mb-2">Welcome to GovernanceOS</h1>
+            <p className="text-white/50">Let&apos;s set up your organization to get started</p>
+          </div>
 
-          {step === 2 && (
-            <div className="space-y-6">
-              {error && (
-                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="orgName">Organization Name</Label>
-                  <Input
-                    id="orgName"
-                    placeholder="Acme AB"
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    leftIcon={<Building2 className="h-4 w-4" />}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="orgNumber">
-                    Organization Number <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="orgNumber"
-                    placeholder="556123-4567"
-                    value={orgNumber}
-                    onChange={(e) => setOrgNumber(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Swedish organization number (organisationsnummer)
+          <div className="bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-sm">
+            {step === 1 && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h3 className="font-semibold text-white mb-2">What would you like to do?</h3>
+                  <p className="text-sm text-white/50">
+                    Choose how you want to get started with GovernanceOS
                   </p>
                 </div>
-              </div>
 
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                  Back
-                </Button>
-                <Button
-                  onClick={handleCreateOrganization}
-                  isLoading={isSubmitting}
-                  className="flex-1"
-                >
-                  Create Organization
-                </Button>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setStep(2)}
+                    className="w-full flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all group"
+                  >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-white">Create a new organization</p>
+                      <p className="text-xs text-white/50">
+                        Set up your company or board
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-white/60 transition-colors" />
+                  </button>
+
+                  <button
+                    disabled
+                    className="w-full flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-lg opacity-50 cursor-not-allowed"
+                  >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-white/5">
+                      <Users className="w-5 h-5 text-white/50" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-white/50">Join an existing organization</p>
+                      <p className="text-xs text-white/40">
+                        You&apos;ll need an invitation from an admin
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-6">
+                {error && (
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="orgName" className="block text-sm font-medium text-white/70">
+                      Organization Name
+                    </label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                      <input
+                        id="orgName"
+                        type="text"
+                        placeholder="Acme AB"
+                        value={orgName}
+                        onChange={(e) => setOrgName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="orgNumber" className="block text-sm font-medium text-white/70">
+                      Organization Number <span className="text-white/40">(optional)</span>
+                    </label>
+                    <input
+                      id="orgNumber"
+                      type="text"
+                      placeholder="556123-4567"
+                      value={orgNumber}
+                      onChange={(e) => setOrgNumber(e.target.value)}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                    />
+                    <p className="text-xs text-white/40">
+                      Swedish organization number (organisationsnummer)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 transition-all"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </button>
+                  <button
+                    onClick={handleCreateOrganization}
+                    disabled={isSubmitting}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        Create
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 p-6 text-center text-sm text-white/40">
+        &copy; {new Date().getFullYear()} GovernanceOS. Built for the Nordic market.
+      </footer>
     </div>
   );
 }
