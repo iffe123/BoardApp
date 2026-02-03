@@ -3,9 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Briefcase, Shield, BarChart3, Users, ArrowRight, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function LandingPage() {
@@ -19,119 +17,186 @@ export default function LandingPage() {
     }
   }, [isAuthenticated, isLoading, currentTenantId, router]);
 
-  const features = [
+  const platforms = [
     {
-      icon: <Shield className="h-6 w-6" />,
-      title: 'Nordic Compliance',
-      description:
-        'Built for Swedish corporate governance with Jäv detection, BankID signing, and adjuster workflows.',
+      number: '01',
+      title: 'Intelligent Meetings',
+      description: 'AI-powered agenda management, real-time collaboration, and automated minutes generation.',
     },
     {
-      icon: <BarChart3 className="h-6 w-6" />,
-      title: 'Financial Intelligence',
-      description:
-        'Real-time financial dashboards with ERP integration, automated KPIs, and AI-powered insights.',
+      number: '02',
+      title: 'Financial Oversight',
+      description: 'Real-time dashboards, ERP integration, and rolling 12-month analytics with AI insights.',
     },
     {
-      icon: <Users className="h-6 w-6" />,
-      title: 'Smart Meetings',
-      description:
-        'Drag-and-drop agenda builder, AI-generated minutes, and digital signature workflows.',
+      number: '03',
+      title: 'Compliance Engine',
+      description: 'Swedish governance built-in. Jäv detection, BankID signatures, and full audit trails.',
     },
   ];
 
-  const benefits = [
-    'AI-powered meeting minutes generation',
-    'Conflict of interest (Jäv) detection',
-    'Swedish BankID integration',
-    'Real-time financial consolidation',
-    'ERP integrations (Fortnox, Visma)',
-    'Multi-organization management',
-    'GDPR compliant with EU data residency',
-    'Rolling 12-month financial analytics',
+  const capabilities = [
+    'AI-Generated Minutes',
+    'Conflict of Interest Detection',
+    'BankID Digital Signatures',
+    'Real-time Financial Consolidation',
+    'ERP Integration (Fortnox, Visma)',
+    'Multi-Organization Management',
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">GovernanceOS</span>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-12">
+            <Link href="/" className="text-xl font-semibold tracking-tight">
+              GovernanceOS
+            </Link>
+            <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
+              <Link href="#platform" className="hover:text-white transition-colors">Platform</Link>
+              <Link href="#capabilities" className="hover:text-white transition-colors">Capabilities</Link>
+              <Link href="#enterprise" className="hover:text-white transition-colors">Enterprise</Link>
+            </div>
           </div>
-          <nav className="flex items-center gap-4">
-            <Link href="/auth/login">
-              <Button variant="ghost">Sign In</Button>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/auth/login"
+              className="text-sm text-white/60 hover:text-white transition-colors"
+            >
+              Sign In
             </Link>
-            <Link href="/auth/signup">
-              <Button>Get Started</Button>
+            <Link
+              href="/auth/signup"
+              className="text-sm px-4 py-2 bg-white text-black font-medium rounded hover:bg-white/90 transition-colors"
+            >
+              Get Started
             </Link>
-          </nav>
+          </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-blue-800 bg-clip-text text-transparent">
-          AI-Native Board Governance
-          <br />
-          for Modern Organizations
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          The complete platform for board meetings, financial oversight, and corporate
-          compliance. Built for the Nordic market with Swedish governance requirements
-          at its core.
-        </p>
-        <div className="flex items-center justify-center gap-4">
-          <Link href="/auth/signup">
-            <Button size="lg" className="gap-2">
+      <section className="relative min-h-screen flex items-center justify-center pt-16">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.1),transparent_70%)]" />
+
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px'
+          }}
+        />
+
+        <div className="relative max-w-7xl mx-auto px-6 py-32 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-sm text-white/60 mb-8">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Now available for Nordic enterprises
+          </div>
+
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.9]">
+            Board Governance
+            <br />
+            <span className="text-white/40">Reimagined</span>
+          </h1>
+
+          <p className="text-xl md:text-2xl text-white/50 max-w-3xl mx-auto mb-12 leading-relaxed">
+            The AI-native platform for modern board management. Built for Swedish
+            corporate governance with intelligence at its core.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/auth/signup"
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-medium rounded hover:bg-white/90 transition-all"
+            >
               Start Free Trial
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="#features">
-            <Button size="lg" variant="outline">
-              Learn More
-            </Button>
-          </Link>
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="#platform"
+              className="inline-flex items-center gap-3 px-8 py-4 border border-white/20 text-white font-medium rounded hover:bg-white/5 transition-all"
+            >
+              Explore Platform
+            </Link>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
+          <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/20 to-transparent" />
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Everything You Need for Board Excellence
-        </h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <Card key={index} className="border-0 shadow-lg">
-              <CardContent className="p-6">
-                <div className="rounded-lg bg-primary/10 text-primary p-3 w-fit mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Benefits List */}
-      <section className="bg-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">
-              Built for Swedish Corporate Governance
+      {/* Platform Section */}
+      <section id="platform" className="py-32 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="mb-20">
+            <p className="text-sm text-white/40 uppercase tracking-widest mb-4">Platform</p>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight max-w-3xl">
+              Three pillars of intelligent governance
             </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="rounded-full bg-green-100 p-1">
-                    <Check className="h-4 w-4 text-green-600" />
-                  </div>
-                  <span>{benefit}</span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-px bg-white/10 rounded-lg overflow-hidden">
+            {platforms.map((platform) => (
+              <div
+                key={platform.number}
+                className="bg-[#0a0a0a] p-10 hover:bg-white/[0.02] transition-colors group"
+              >
+                <span className="text-6xl font-bold text-white/10 group-hover:text-white/20 transition-colors">
+                  {platform.number}
+                </span>
+                <h3 className="text-2xl font-semibold mt-6 mb-4">{platform.title}</h3>
+                <p className="text-white/50 leading-relaxed mb-6">{platform.description}</p>
+                <Link
+                  href="/auth/signup"
+                  className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
+                >
+                  Learn more <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Capabilities Section */}
+      <section id="capabilities" className="py-32 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <div>
+              <p className="text-sm text-white/40 uppercase tracking-widest mb-4">Capabilities</p>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">
+                Built for Swedish
+                <br />
+                <span className="text-white/40">corporate governance</span>
+              </h2>
+              <p className="text-lg text-white/50 leading-relaxed mb-12">
+                Every feature designed with Nordic compliance requirements in mind.
+                From Jäv detection to BankID signatures, we handle the complexity
+                so you can focus on governance.
+              </p>
+              <Link
+                href="/auth/signup"
+                className="group inline-flex items-center gap-3 px-6 py-3 bg-white text-black font-medium rounded hover:bg-white/90 transition-all"
+              >
+                Get Started
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {capabilities.map((capability, index) => (
+                <div
+                  key={index}
+                  className="p-6 border border-white/10 rounded-lg hover:border-white/20 hover:bg-white/[0.02] transition-all"
+                >
+                  <span className="text-sm text-white/80">{capability}</span>
                 </div>
               ))}
             </div>
@@ -139,34 +204,57 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="bg-primary rounded-2xl p-12 text-primary-foreground">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to Transform Your Board Management?
-          </h2>
-          <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
-            Join forward-thinking organizations using GovernanceOS to streamline
-            their corporate governance.
-          </p>
-          <Link href="/auth/signup">
-            <Button size="lg" variant="secondary" className="gap-2">
-              Start Your Free Trial
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+      {/* Enterprise Section */}
+      <section id="enterprise" className="py-32 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent p-12 md:p-20 overflow-hidden">
+            {/* Background accent */}
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-500/10 to-transparent" />
+
+            <div className="relative max-w-2xl">
+              <p className="text-sm text-white/40 uppercase tracking-widest mb-4">Enterprise</p>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
+                Ready for the
+                <br />
+                modern boardroom
+              </h2>
+              <p className="text-lg text-white/50 leading-relaxed mb-10">
+                GDPR compliant with EU data residency. SOC 2 certified infrastructure.
+                Deployed by leading Nordic organizations.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/auth/signup"
+                  className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-black font-medium rounded hover:bg-white/90 transition-all"
+                >
+                  Start Free Trial
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <button
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 border border-white/20 text-white font-medium rounded hover:bg-white/5 transition-all"
+                >
+                  Contact Sales
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              <span className="font-semibold">GovernanceOS</span>
+      <footer className="py-12 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-8">
+              <span className="text-lg font-semibold">GovernanceOS</span>
+              <div className="hidden md:flex items-center gap-6 text-sm text-white/40">
+                <Link href="#" className="hover:text-white transition-colors">Platform</Link>
+                <Link href="#" className="hover:text-white transition-colors">Enterprise</Link>
+                <Link href="#" className="hover:text-white transition-colors">Security</Link>
+                <Link href="#" className="hover:text-white transition-colors">Careers</Link>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/40">
               &copy; {new Date().getFullYear()} GovernanceOS. Built for the Nordic market.
             </p>
           </div>
