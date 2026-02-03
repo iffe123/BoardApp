@@ -11,21 +11,8 @@ import {
   Video,
   Users,
   Building2,
+  Check,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserAvatar } from '@/components/ui/avatar';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { Member } from '@/types/schema';
 import { Timestamp } from 'firebase/firestore';
@@ -96,12 +83,8 @@ export default function NewMeetingPage() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-
     try {
-      // In real app, save to Firestore
-      // const meetingId = await createMeeting(form);
       const meetingId = 'new-meeting-' + Date.now();
-
       router.push(`/dashboard/${tenantId}/meetings/${meetingId}`);
     } catch (error) {
       console.error('Error creating meeting:', error);
@@ -116,22 +99,22 @@ export default function NewMeetingPage() {
       ? form.videoUrl.trim().length > 0
       : form.locationType === 'physical'
       ? form.address.trim().length > 0 || form.room.trim().length > 0
-      : (form.address.trim().length > 0 || form.room.trim().length > 0) && form.videoUrl.trim().length > 0;
+      : (form.address.trim().length > 0 || form.room.trim().length > 0) || form.videoUrl.trim().length > 0;
   const isStep3Valid = form.selectedMemberIds.length >= form.quorumRequired;
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-8 max-w-3xl mx-auto text-white">
       {/* Header */}
       <div className="mb-8">
         <Link
           href={`/dashboard/${tenantId}/meetings`}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+          className="inline-flex items-center text-sm text-white/50 hover:text-white mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back to Meetings
         </Link>
-        <h1 className="text-3xl font-bold">Schedule New Meeting</h1>
-        <p className="text-muted-foreground mt-1">Create a new board or committee meeting</p>
+        <h1 className="text-3xl font-bold tracking-tight">Schedule New Meeting</h1>
+        <p className="text-white/50 mt-1">Create a new board or committee meeting</p>
       </div>
 
       {/* Progress Steps */}
@@ -145,122 +128,129 @@ export default function NewMeetingPage() {
             key={num}
             className={cn(
               'flex items-center gap-2',
-              num < step && 'text-primary',
-              num === step && 'text-foreground',
-              num > step && 'text-muted-foreground'
+              num < step && 'text-emerald-400',
+              num === step && 'text-white',
+              num > step && 'text-white/40'
             )}
           >
             <div
               className={cn(
                 'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium',
-                num <= step ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                num < step && 'bg-emerald-500/20 text-emerald-400',
+                num === step && 'bg-white text-black',
+                num > step && 'bg-white/10 text-white/40'
               )}
             >
-              {num}
+              {num < step ? <Check className="h-4 w-4" /> : num}
             </div>
             <span className="hidden sm:inline text-sm font-medium">{label}</span>
-            {num < 3 && <div className="w-12 h-px bg-muted mx-2" />}
+            {num < 3 && <div className="w-12 h-px bg-white/10 mx-2" />}
           </div>
         ))}
       </div>
 
       {/* Step 1: Meeting Details */}
       {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Meeting Details</CardTitle>
-            <CardDescription>Basic information about the meeting</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="rounded-xl bg-white/[0.02] p-6">
+          <h2 className="text-lg font-semibold mb-1">Meeting Details</h2>
+          <p className="text-sm text-white/50 mb-6">Basic information about the meeting</p>
+
+          <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Meeting Title</Label>
-              <Input
-                id="title"
+              <label className="block text-sm font-medium text-white/70">Meeting Title</label>
+              <input
+                type="text"
                 placeholder="Q4 Board Meeting"
                 value={form.title}
                 onChange={(e) => updateForm({ title: e.target.value })}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
-                id="description"
+              <label className="block text-sm font-medium text-white/70">Description (optional)</label>
+              <textarea
                 placeholder="Quarterly board meeting to review financial results..."
                 value={form.description}
                 onChange={(e) => updateForm({ description: e.target.value })}
                 rows={3}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 resize-none"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Meeting Type</Label>
-              <Select
+              <label className="block text-sm font-medium text-white/70">Meeting Type</label>
+              <select
                 value={form.meetingType}
-                onValueChange={(value: MeetingType) => updateForm({ meetingType: value })}
+                onChange={(e) => updateForm({ meetingType: e.target.value as MeetingType })}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ordinary">Ordinary Board Meeting</SelectItem>
-                  <SelectItem value="extraordinary">Extraordinary Meeting</SelectItem>
-                  <SelectItem value="annual_general">Annual General Meeting</SelectItem>
-                  <SelectItem value="statutory">Statutory Meeting</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="ordinary">Ordinary Board Meeting</option>
+                <option value="extraordinary">Extraordinary Meeting</option>
+                <option value="annual_general">Annual General Meeting</option>
+                <option value="statutory">Statutory Meeting</option>
+              </select>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => updateForm({ date: e.target.value })}
-                  leftIcon={<Calendar className="h-4 w-4" />}
-                />
+                <label className="block text-sm font-medium text-white/70">Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => updateForm({ date: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => updateForm({ startTime: e.target.value })}
-                  leftIcon={<Clock className="h-4 w-4" />}
-                />
+                <label className="block text-sm font-medium text-white/70">Start Time</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <input
+                    type="time"
+                    value={form.startTime}
+                    onChange={(e) => updateForm({ startTime: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => updateForm({ endTime: e.target.value })}
-                  leftIcon={<Clock className="h-4 w-4" />}
-                />
+                <label className="block text-sm font-medium text-white/70">End Time</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <input
+                    type="time"
+                    value={form.endTime}
+                    onChange={(e) => updateForm({ endTime: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <Button onClick={() => setStep(2)} disabled={!isStep1Valid}>
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={() => setStep(2)}
+                disabled={!isStep1Valid}
+                className="px-6 py-2 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
                 Continue
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Step 2: Location */}
       {step === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Meeting Location</CardTitle>
-            <CardDescription>Where will the meeting take place?</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="rounded-xl bg-white/[0.02] p-6">
+          <h2 className="text-lg font-semibold mb-1">Meeting Location</h2>
+          <p className="text-sm text-white/50 mb-6">Where will the meeting take place?</p>
+
+          <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-3">
               {[
                 { value: 'physical', label: 'In Person', icon: Building2 },
@@ -272,39 +262,43 @@ export default function NewMeetingPage() {
                   type="button"
                   onClick={() => updateForm({ locationType: value as LocationType })}
                   className={cn(
-                    'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors',
+                    'flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors',
                     form.locationType === value
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted hover:border-muted-foreground/50'
+                      ? 'border-white/30 bg-white/10'
+                      : 'border-white/10 bg-white/[0.02] hover:bg-white/5'
                   )}
                 >
                   <Icon className="h-6 w-6" />
-                  <span className="font-medium">{label}</span>
+                  <span className="font-medium text-sm">{label}</span>
                 </button>
               ))}
             </div>
 
             {(form.locationType === 'physical' || form.locationType === 'hybrid') && (
-              <div className="space-y-4 p-4 rounded-lg bg-muted/50">
+              <div className="space-y-4 p-4 rounded-lg bg-white/5">
                 <h4 className="font-medium">Physical Location</h4>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      placeholder="Stureplan 4, Stockholm"
-                      value={form.address}
-                      onChange={(e) => updateForm({ address: e.target.value })}
-                      leftIcon={<MapPin className="h-4 w-4" />}
-                    />
+                    <label className="block text-sm font-medium text-white/70">Address</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                      <input
+                        type="text"
+                        placeholder="Stureplan 4, Stockholm"
+                        value={form.address}
+                        onChange={(e) => updateForm({ address: e.target.value })}
+                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="room">Room</Label>
-                    <Input
-                      id="room"
+                    <label className="block text-sm font-medium text-white/70">Room</label>
+                    <input
+                      type="text"
                       placeholder="Board Room"
                       value={form.room}
                       onChange={(e) => updateForm({ room: e.target.value })}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                     />
                   </div>
                 </div>
@@ -312,86 +306,87 @@ export default function NewMeetingPage() {
             )}
 
             {(form.locationType === 'virtual' || form.locationType === 'hybrid') && (
-              <div className="space-y-4 p-4 rounded-lg bg-muted/50">
+              <div className="space-y-4 p-4 rounded-lg bg-white/5">
                 <h4 className="font-medium">Video Conference</h4>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Platform</Label>
-                    <Select
+                    <label className="block text-sm font-medium text-white/70">Platform</label>
+                    <select
                       value={form.videoPlatform}
-                      onValueChange={(value) => updateForm({ videoPlatform: value })}
+                      onChange={(e) => updateForm({ videoPlatform: e.target.value })}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="teams">Microsoft Teams</SelectItem>
-                        <SelectItem value="zoom">Zoom</SelectItem>
-                        <SelectItem value="google_meet">Google Meet</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="teams">Microsoft Teams</option>
+                      <option value="zoom">Zoom</option>
+                      <option value="google_meet">Google Meet</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="videoUrl">Meeting Link</Label>
-                    <Input
-                      id="videoUrl"
-                      placeholder="https://teams.microsoft.com/..."
-                      value={form.videoUrl}
-                      onChange={(e) => updateForm({ videoUrl: e.target.value })}
-                      leftIcon={<Video className="h-4 w-4" />}
-                    />
+                    <label className="block text-sm font-medium text-white/70">Meeting Link</label>
+                    <div className="relative">
+                      <Video className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                      <input
+                        type="text"
+                        placeholder="https://teams.microsoft.com/..."
+                        value={form.videoUrl}
+                        onChange={(e) => updateForm({ videoUrl: e.target.value })}
+                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(1)}>
+            <div className="flex justify-between pt-4">
+              <button
+                onClick={() => setStep(1)}
+                className="px-6 py-2 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 transition-colors"
+              >
                 Back
-              </Button>
-              <Button onClick={() => setStep(3)} disabled={!isStep2Valid}>
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                disabled={!isStep2Valid}
+                className="px-6 py-2 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
                 Continue
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Step 3: Attendees */}
       {step === 3 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Attendees</CardTitle>
-            <CardDescription>Select board members to invite to this meeting</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="rounded-xl bg-white/[0.02] p-6">
+          <h2 className="text-lg font-semibold mb-1">Invite Attendees</h2>
+          <p className="text-sm text-white/50 mb-6">Select board members to invite to this meeting</p>
+
+          <div className="space-y-6">
             <div className="space-y-2">
-              <Label>Quorum Required</Label>
-              <Select
+              <label className="block text-sm font-medium text-white/70">Quorum Required</label>
+              <select
                 value={String(form.quorumRequired)}
-                onValueChange={(value) => updateForm({ quorumRequired: parseInt(value) })}
+                onChange={(e) => updateForm({ quorumRequired: parseInt(e.target.value) })}
+                className="w-32 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20"
               >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <SelectItem key={num} value={String(num)}>
-                      {num} {num === 1 ? 'member' : 'members'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <option key={num} value={String(num)}>
+                    {num} {num === 1 ? 'member' : 'members'}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-white/40">
                 Minimum number of attendees required for a valid meeting
               </p>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Board Members</Label>
-                <span className="text-sm text-muted-foreground">
+                <label className="text-sm font-medium text-white/70">Board Members</label>
+                <span className="text-sm text-white/40">
                   {form.selectedMemberIds.length} selected
                 </span>
               </div>
@@ -406,20 +401,22 @@ export default function NewMeetingPage() {
                       className={cn(
                         'w-full flex items-center justify-between p-3 rounded-lg border transition-colors',
                         isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-muted hover:border-muted-foreground/50'
+                          ? 'border-white/30 bg-white/10'
+                          : 'border-white/10 bg-white/[0.02] hover:bg-white/5'
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <UserAvatar name={member.displayName} size="sm" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm font-medium">
+                          {member.displayName.charAt(0)}
+                        </div>
                         <div className="text-left">
                           <p className="font-medium text-sm">{member.displayName}</p>
-                          <p className="text-xs text-muted-foreground">{member.title}</p>
+                          <p className="text-xs text-white/40">{member.title}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="capitalize">
+                      <span className="px-2 py-0.5 text-xs rounded-md bg-white/10 text-white/60 capitalize">
                         {member.role}
-                      </Badge>
+                      </span>
                     </button>
                   );
                 })}
@@ -427,21 +424,35 @@ export default function NewMeetingPage() {
             </div>
 
             {!isStep3Valid && (
-              <div className="p-3 rounded-md bg-amber-50 text-amber-800 text-sm">
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
                 Please select at least {form.quorumRequired} members to meet quorum requirements.
               </div>
             )}
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)}>
+            <div className="flex justify-between pt-4">
+              <button
+                onClick={() => setStep(2)}
+                className="px-6 py-2 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 transition-colors"
+              >
                 Back
-              </Button>
-              <Button onClick={handleSubmit} disabled={!isStep3Valid} isLoading={isSubmitting}>
-                Create Meeting
-              </Button>
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!isStep3Valid || isSubmitting}
+                className="px-6 py-2 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    Creating...
+                  </span>
+                ) : (
+                  'Create Meeting'
+                )}
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

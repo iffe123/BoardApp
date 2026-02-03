@@ -1,14 +1,8 @@
 'use client';
 
-/**
- * Sidebar Navigation Component
- *
- * Main navigation sidebar for the GovernanceOS dashboard.
- */
-
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Calendar,
@@ -21,27 +15,10 @@ import {
   LogOut,
   Plus,
   Shield,
-  Bell,
-  HelpCircle,
-  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { UserAvatar } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import type { Tenant } from '@/types/schema';
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 interface NavItem {
   label: string;
@@ -55,68 +32,55 @@ interface SidebarProps {
   className?: string;
 }
 
-// ============================================================================
-// NAVIGATION ITEMS
-// ============================================================================
-
 const getNavItems = (tenantId: string): NavItem[] => [
   {
     label: 'Dashboard',
     href: `/dashboard/${tenantId}`,
-    icon: <LayoutDashboard className="h-5 w-5" />,
+    icon: <LayoutDashboard className="h-4 w-4" />,
   },
   {
     label: 'Meetings',
     href: `/dashboard/${tenantId}/meetings`,
-    icon: <Calendar className="h-5 w-5" />,
+    icon: <Calendar className="h-4 w-4" />,
   },
   {
     label: 'Documents',
     href: `/dashboard/${tenantId}/documents`,
-    icon: <FileText className="h-5 w-5" />,
+    icon: <FileText className="h-4 w-4" />,
   },
   {
     label: 'Financials',
     href: `/dashboard/${tenantId}/financials`,
-    icon: <BarChart3 className="h-5 w-5" />,
+    icon: <BarChart3 className="h-4 w-4" />,
     requiredPermission: 'canViewFinancials',
   },
   {
     label: 'Decisions',
     href: `/dashboard/${tenantId}/decisions`,
-    icon: <Shield className="h-5 w-5" />,
+    icon: <Shield className="h-4 w-4" />,
   },
   {
     label: 'Members',
     href: `/dashboard/${tenantId}/members`,
-    icon: <Users className="h-5 w-5" />,
+    icon: <Users className="h-4 w-4" />,
   },
   {
     label: 'Settings',
     href: `/dashboard/${tenantId}/settings`,
-    icon: <Settings className="h-5 w-5" />,
+    icon: <Settings className="h-4 w-4" />,
     requiredPermission: 'isAdmin',
   },
 ];
 
-// ============================================================================
-// NAV LINK COMPONENT
-// ============================================================================
-
-interface NavLinkProps {
-  item: NavItem;
-  isActive: boolean;
-}
-
-function NavLink({ item, isActive }: NavLinkProps) {
+function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
     <Link
       href={item.href}
       className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        'flex items-center gap-3 px-3 py-2 text-sm transition-colors rounded-lg',
         isActive
-          ? 'bg-primary text-primary-foreground'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          ? 'bg-white/10 text-white'
+          : 'text-white/50 hover:text-white hover:bg-white/5'
       )}
     >
       {item.icon}
@@ -125,146 +89,18 @@ function NavLink({ item, isActive }: NavLinkProps) {
   );
 }
 
-// ============================================================================
-// ORGANIZATION SWITCHER
-// ============================================================================
-
-interface OrgSwitcherProps {
-  currentTenant: Tenant | null;
-  tenants: Array<{ id: string; name: string }>;
-  onSwitch: (tenantId: string) => void;
-}
-
-function OrgSwitcher({ currentTenant, tenants, onSwitch }: OrgSwitcherProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-between px-3 py-6 h-auto"
-        >
-          <div className="flex items-center gap-3">
-            {currentTenant?.logoUrl ? (
-              <img
-                src={currentTenant.logoUrl}
-                alt={currentTenant.name}
-                className="h-8 w-8 rounded object-cover"
-              />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground">
-                <Building2 className="h-4 w-4" />
-              </div>
-            )}
-            <div className="text-left">
-              <p className="font-medium truncate max-w-[140px]">
-                {currentTenant?.name || 'Select Organization'}
-              </p>
-              {currentTenant?.organizationNumber && (
-                <p className="text-xs text-muted-foreground">
-                  {currentTenant.organizationNumber}
-                </p>
-              )}
-            </div>
-          </div>
-          <ChevronDown className="h-4 w-4 shrink-0" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="start">
-        <DropdownMenuLabel>Organizations</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {tenants.map((tenant) => (
-          <DropdownMenuItem
-            key={tenant.id}
-            onClick={() => onSwitch(tenant.id)}
-            className={cn(
-              'cursor-pointer',
-              tenant.id === currentTenant?.id && 'bg-muted'
-            )}
-          >
-            <Building2 className="h-4 w-4 mr-2" />
-            {tenant.name}
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Organization
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-// ============================================================================
-// USER MENU
-// ============================================================================
-
-function UserMenu() {
-  const { user, userProfile, signOut, currentTenantRole } = useAuth();
-
-  if (!user) return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start gap-3 px-3 py-6 h-auto">
-          <UserAvatar
-            name={userProfile?.displayName || user.displayName || 'User'}
-            imageUrl={userProfile?.avatarUrl || user.photoURL || undefined}
-            size="sm"
-          />
-          <div className="text-left flex-1 overflow-hidden">
-            <p className="font-medium truncate">
-              {userProfile?.displayName || user.displayName || 'User'}
-            </p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {currentTenantRole || 'Member'}
-            </p>
-          </div>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="start">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Settings className="h-4 w-4 mr-2" />
-          Profile Settings
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Bell className="h-4 w-4 mr-2" />
-          Notifications
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <HelpCircle className="h-4 w-4 mr-2" />
-          Help & Support
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-// ============================================================================
-// MAIN SIDEBAR
-// ============================================================================
-
 export function Sidebar({ tenant, className }: SidebarProps) {
   const pathname = usePathname();
-  const { tenantClaims, setCurrentTenant } = useAuth();
+  const router = useRouter();
+  const { user, userProfile, tenantClaims, setCurrentTenant, signOut, currentTenantRole } = useAuth();
   const permissions = usePermissions();
 
   const tenantId = tenant?.id || '';
   const navItems = getNavItems(tenantId);
 
-  // Get list of accessible tenants
-  const accessibleTenants = Object.entries(tenantClaims).map(([id, role]) => ({
+  const accessibleTenants = Object.entries(tenantClaims).map(([id]) => ({
     id,
-    name: id, // In real app, would fetch tenant names
-    role,
+    name: id === tenant?.id ? tenant.name : id,
   }));
 
   const filteredNavItems = navItems.filter((item) => {
@@ -272,60 +108,145 @@ export function Sidebar({ tenant, className }: SidebarProps) {
     return permissions[item.requiredPermission as keyof typeof permissions];
   });
 
+  const [orgMenuOpen, setOrgMenuOpen] = React.useState(false);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
+
   return (
     <aside
       className={cn(
-        'flex h-screen w-64 flex-col border-r bg-card',
+        'flex h-screen w-60 flex-col bg-[#0a0a0a] border-r border-white/5',
         className
       )}
     >
-      {/* Logo / Brand */}
-      <div className="flex h-16 items-center gap-2 border-b px-4">
-        <Briefcase className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">GovernanceOS</span>
+      {/* Logo */}
+      <div className="flex h-14 items-center px-4">
+        <Link href="/" className="text-lg font-semibold text-white tracking-tight">
+          GovernanceOS
+        </Link>
       </div>
 
       {/* Organization Switcher */}
-      <div className="border-b p-2">
-        <OrgSwitcher
-          currentTenant={tenant}
-          tenants={accessibleTenants}
-          onSwitch={setCurrentTenant}
-        />
+      <div className="px-3 py-2">
+        <div className="relative">
+          <button
+            onClick={() => setOrgMenuOpen(!orgMenuOpen)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {tenant?.name || 'Select Organization'}
+              </p>
+              {tenant?.organizationNumber && (
+                <p className="text-xs text-white/40 truncate">
+                  {tenant.organizationNumber}
+                </p>
+              )}
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-white/40 transition-transform",
+              orgMenuOpen && "rotate-180"
+            )} />
+          </button>
+
+          {orgMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 py-1 bg-[#141414] border border-white/10 rounded-lg shadow-xl z-50">
+              {accessibleTenants.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setCurrentTenant(t.id);
+                    setOrgMenuOpen(false);
+                  }}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-white/5 transition-colors',
+                    t.id === tenant?.id ? 'text-white' : 'text-white/60'
+                  )}
+                >
+                  <Building2 className="h-4 w-4" />
+                  {t.name}
+                </button>
+              ))}
+              <div className="border-t border-white/10 mt-1 pt-1">
+                <Link
+                  href="/onboarding"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Organization
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
           {filteredNavItems.map((item) => (
             <NavLink
               key={item.href}
               item={item}
-              isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+              isActive={pathname === item.href || (item.href !== `/dashboard/${tenantId}` && pathname.startsWith(item.href + '/'))}
             />
           ))}
         </div>
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          <p className="px-3 text-xs font-medium text-white/30 uppercase tracking-wider mb-2">
             Quick Actions
           </p>
-          <div className="space-y-1">
-            <Link
-              href={`/dashboard/${tenantId}/meetings/new`}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-              New Meeting
-            </Link>
-          </div>
+          <Link
+            href={`/dashboard/${tenantId}/meetings/new`}
+            className="flex items-center gap-3 px-3 py-2 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Meeting
+          </Link>
         </div>
       </nav>
 
       {/* User Menu */}
-      <div className="border-t p-2">
-        <UserMenu />
+      <div className="px-3 py-3 border-t border-white/5">
+        <div className="relative">
+          <button
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 text-white text-sm font-medium">
+              {(userProfile?.displayName || user?.displayName || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {userProfile?.displayName || user?.displayName || 'User'}
+              </p>
+              <p className="text-xs text-white/40 capitalize">
+                {currentTenantRole || 'Member'}
+              </p>
+            </div>
+          </button>
+
+          {userMenuOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 py-1 bg-[#141414] border border-white/10 rounded-lg shadow-xl z-50">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/5 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );

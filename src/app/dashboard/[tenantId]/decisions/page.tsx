@@ -16,18 +16,6 @@ import {
   Users,
   ExternalLink,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import { formatDate } from '@/lib/utils';
 import type { Decision, DecisionOutcome } from '@/types/schema';
 import { Timestamp } from 'firebase/firestore';
@@ -158,19 +146,19 @@ const outcomeLabels: Record<DecisionOutcome, string> = {
 };
 
 const outcomeIcons: Record<DecisionOutcome, React.ReactNode> = {
-  approved: <CheckCircle className="h-4 w-4 text-green-600" />,
-  rejected: <XCircle className="h-4 w-4 text-red-600" />,
-  tabled: <Clock className="h-4 w-4 text-amber-600" />,
-  withdrawn: <AlertTriangle className="h-4 w-4 text-gray-500" />,
-  pending: <Clock className="h-4 w-4 text-blue-600" />,
+  approved: <CheckCircle className="h-4 w-4 text-emerald-400" />,
+  rejected: <XCircle className="h-4 w-4 text-red-400" />,
+  tabled: <Clock className="h-4 w-4 text-amber-400" />,
+  withdrawn: <AlertTriangle className="h-4 w-4 text-white/40" />,
+  pending: <Clock className="h-4 w-4 text-blue-400" />,
 };
 
 const outcomeColors: Record<DecisionOutcome, string> = {
-  approved: 'bg-green-100 text-green-800 border-green-200',
-  rejected: 'bg-red-100 text-red-800 border-red-200',
-  tabled: 'bg-amber-100 text-amber-800 border-amber-200',
-  withdrawn: 'bg-gray-100 text-gray-800 border-gray-200',
-  pending: 'bg-blue-100 text-blue-800 border-blue-200',
+  approved: 'bg-emerald-500/10 text-emerald-400',
+  rejected: 'bg-red-500/10 text-red-400',
+  tabled: 'bg-amber-500/10 text-amber-400',
+  withdrawn: 'bg-white/5 text-white/50',
+  pending: 'bg-blue-500/10 text-blue-400',
 };
 
 export default function DecisionsPage() {
@@ -179,6 +167,7 @@ export default function DecisionsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOutcome, setFilterOutcome] = useState<FilterOutcome>('all');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Filter decisions
   const filteredDecisions = mockDecisions.filter((decision) => {
@@ -201,188 +190,183 @@ export default function DecisionsPage() {
   );
 
   return (
-    <div className="p-8">
+    <div className="p-8 text-white">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-3xl font-bold">Decision Register</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">Decision Register</h1>
+          <p className="text-white/50 mt-1">
             Track all board decisions and their implementation status
           </p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-5 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Decisions</div>
-            <div className="text-2xl font-bold">{mockDecisions.length}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="text-sm text-green-700">Approved</div>
-            <div className="text-2xl font-bold text-green-800">{decisionsByOutcome['approved'] || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="text-sm text-red-700">Rejected</div>
-            <div className="text-2xl font-bold text-red-800">{decisionsByOutcome['rejected'] || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="p-4">
-            <div className="text-sm text-amber-700">Tabled</div>
-            <div className="text-2xl font-bold text-amber-800">{decisionsByOutcome['tabled'] || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">In Progress</div>
-            <div className="text-2xl font-bold">
-              {mockDecisions.filter((d) => d.implementationStatus === 'in_progress').length}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-5 mb-10">
+        <div className="p-6 rounded-xl bg-white/[0.02]">
+          <p className="text-sm text-white/40">Total Decisions</p>
+          <p className="text-3xl font-bold mt-1">{mockDecisions.length}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-emerald-500/10">
+          <p className="text-sm text-emerald-400">Approved</p>
+          <p className="text-3xl font-bold mt-1 text-emerald-400">{decisionsByOutcome['approved'] || 0}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-red-500/10">
+          <p className="text-sm text-red-400">Rejected</p>
+          <p className="text-3xl font-bold mt-1 text-red-400">{decisionsByOutcome['rejected'] || 0}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-amber-500/10">
+          <p className="text-sm text-amber-400">Tabled</p>
+          <p className="text-3xl font-bold mt-1 text-amber-400">{decisionsByOutcome['tabled'] || 0}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-white/[0.02]">
+          <p className="text-sm text-white/40">In Progress</p>
+          <p className="text-3xl font-bold mt-1">
+            {mockDecisions.filter((d) => d.implementationStatus === 'in_progress').length}
+          </p>
+        </div>
       </div>
 
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+          <input
+            type="text"
             placeholder="Search decisions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
           />
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              {filterOutcome === 'all' ? 'All Outcomes' : outcomeLabels[filterOutcome]}
-              <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuLabel>Filter by Outcome</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setFilterOutcome('all')}>
-              All Outcomes
-            </DropdownMenuItem>
-            {Object.entries(outcomeLabels).map(([value, label]) => (
-              <DropdownMenuItem
-                key={value}
-                onClick={() => setFilterOutcome(value as DecisionOutcome)}
+        <div className="relative">
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:bg-white/10 transition-colors"
+          >
+            <Filter className="h-4 w-4" />
+            {filterOutcome === 'all' ? 'All Outcomes' : outcomeLabels[filterOutcome]}
+            <ChevronDown className="h-4 w-4" />
+          </button>
+
+          {filterOpen && (
+            <div className="absolute top-full left-0 mt-1 py-1 bg-[#141414] border border-white/10 rounded-lg shadow-xl z-50 min-w-[160px]">
+              <button
+                onClick={() => { setFilterOutcome('all'); setFilterOpen(false); }}
+                className="w-full px-3 py-2 text-sm text-left text-white/70 hover:bg-white/5"
               >
-                <span className="mr-2">{outcomeIcons[value as DecisionOutcome]}</span>
-                {label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                All Outcomes
+              </button>
+              {Object.entries(outcomeLabels).map(([value, label]) => (
+                <button
+                  key={value}
+                  onClick={() => { setFilterOutcome(value as DecisionOutcome); setFilterOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-white/70 hover:bg-white/5"
+                >
+                  {outcomeIcons[value as DecisionOutcome]}
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Decisions List */}
       <div className="space-y-4">
         {filteredDecisions.map((decision) => (
-          <Card key={decision.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Badge variant="outline" className={outcomeColors[decision.outcome]}>
-                      <span className="mr-1">{outcomeIcons[decision.outcome]}</span>
-                      {outcomeLabels[decision.outcome]}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground font-mono">
-                      {decision.decisionNumber}
+          <div key={decision.id} className="rounded-xl bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-colors">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md ${outcomeColors[decision.outcome]}`}>
+                    {outcomeIcons[decision.outcome]}
+                    {outcomeLabels[decision.outcome]}
+                  </span>
+                  <span className="text-sm text-white/40 font-mono">
+                    {decision.decisionNumber}
+                  </span>
+                  {decision.recusedMemberIds.length > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-amber-500/10 text-amber-400">
+                      <AlertTriangle className="h-3 w-3" />
+                      {decision.recusedMemberIds.length} recused
                     </span>
-                    {decision.recusedMemberIds.length > 0 && (
-                      <Badge variant="warning" className="gap-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        {decision.recusedMemberIds.length} recused
-                      </Badge>
-                    )}
+                  )}
+                </div>
+
+                <h3 className="text-lg font-semibold mb-1">{decision.title}</h3>
+                <p className="text-white/50 text-sm mb-4">{decision.description}</p>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1 text-white/40">
+                    <Calendar className="h-4 w-4" />
+                    {formatDate(decision.decidedAt.toDate())}
                   </div>
-
-                  <h3 className="text-lg font-semibold mb-1">{decision.title}</h3>
-                  <p className="text-muted-foreground text-sm mb-4">{decision.description}</p>
-
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(decision.decidedAt.toDate())}
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      {decision.votesFor} for / {decision.votesAgainst} against / {decision.abstentions} abstain
-                    </div>
-                    {decision.relatedDocumentIds.length > 0 && (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <FileText className="h-4 w-4" />
-                        {decision.relatedDocumentIds.length} document{decision.relatedDocumentIds.length > 1 ? 's' : ''}
-                      </div>
-                    )}
+                  <div className="flex items-center gap-1 text-white/40">
+                    <Users className="h-4 w-4" />
+                    {decision.votesFor} for / {decision.votesAgainst} against / {decision.abstentions} abstain
                   </div>
-
-                  {/* Action Items */}
-                  {decision.actionItems.length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm font-medium mb-2">Action Items</p>
-                      <div className="space-y-2">
-                        {decision.actionItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between text-sm p-2 rounded bg-muted/50"
-                          >
-                            <div className="flex items-center gap-2">
-                              {item.status === 'completed' ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              ) : item.status === 'in_progress' ? (
-                                <Clock className="h-4 w-4 text-blue-600" />
-                              ) : (
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <span className={item.status === 'completed' ? 'line-through text-muted-foreground' : ''}>
-                                {item.title}
-                              </span>
-                            </div>
-                            {item.assigneeName && (
-                              <span className="text-muted-foreground">{item.assigneeName}</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                  {decision.relatedDocumentIds.length > 0 && (
+                    <div className="flex items-center gap-1 text-white/40">
+                      <FileText className="h-4 w-4" />
+                      {decision.relatedDocumentIds.length} document{decision.relatedDocumentIds.length > 1 ? 's' : ''}
                     </div>
                   )}
                 </div>
 
-                <Link href={`/dashboard/${tenantId}/meetings/${decision.meetingId}`}>
-                  <Button variant="ghost" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    View Meeting
-                  </Button>
-                </Link>
+                {/* Action Items */}
+                {decision.actionItems.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-white/5">
+                    <p className="text-sm font-medium mb-2">Action Items</p>
+                    <div className="space-y-2">
+                      {decision.actionItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between text-sm p-2 rounded bg-white/5"
+                        >
+                          <div className="flex items-center gap-2">
+                            {item.status === 'completed' ? (
+                              <CheckCircle className="h-4 w-4 text-emerald-400" />
+                            ) : item.status === 'in_progress' ? (
+                              <Clock className="h-4 w-4 text-blue-400" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-white/40" />
+                            )}
+                            <span className={item.status === 'completed' ? 'line-through text-white/40' : 'text-white/70'}>
+                              {item.title}
+                            </span>
+                          </div>
+                          {item.assigneeName && (
+                            <span className="text-white/40">{item.assigneeName}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </CardContent>
-          </Card>
+
+              <Link href={`/dashboard/${tenantId}/meetings/${decision.meetingId}`}>
+                <button className="flex items-center gap-1 px-3 py-1.5 text-sm text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                  <ExternalLink className="h-4 w-4" />
+                  View Meeting
+                </button>
+              </Link>
+            </div>
+          </div>
         ))}
 
         {filteredDecisions.length === 0 && (
-          <Card className="p-12 text-center">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <div className="rounded-xl bg-white/[0.02] p-12 text-center">
+            <FileText className="h-12 w-12 mx-auto text-white/20 mb-4" />
             <h3 className="text-lg font-semibold mb-2">No decisions found</h3>
-            <p className="text-muted-foreground">
+            <p className="text-white/50">
               {searchQuery || filterOutcome !== 'all'
                 ? 'Try adjusting your filters or search query'
                 : 'Decisions will appear here after board meetings'}
             </p>
-          </Card>
+          </div>
         )}
       </div>
     </div>

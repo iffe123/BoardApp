@@ -15,13 +15,10 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { formatRelativeDate, formatCurrency } from '@/lib/utils';
 
-// Mock data for demonstration - in real app this would come from API/Firestore
+// Mock data for demonstration
 const mockStats = {
   upcomingMeetings: 3,
   pendingSignatures: 5,
@@ -34,50 +31,27 @@ const mockUpcomingMeetings = [
     id: '1',
     title: 'Q4 Board Meeting',
     scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    status: 'scheduled',
     type: 'board',
   },
   {
     id: '2',
     title: 'Audit Committee',
     scheduledAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-    status: 'scheduled',
     type: 'committee',
   },
   {
     id: '3',
     title: 'Annual General Meeting',
     scheduledAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    status: 'scheduled',
     type: 'general',
   },
 ];
 
 const mockRecentActivity = [
-  {
-    id: '1',
-    type: 'signature',
-    message: 'Meeting minutes signed by Johan Lindqvist',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-  },
-  {
-    id: '2',
-    type: 'document',
-    message: 'Q3 Financial Report uploaded',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-  },
-  {
-    id: '3',
-    type: 'meeting',
-    message: 'Board Meeting minutes approved',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '4',
-    type: 'action',
-    message: 'Action item completed: Review budget proposal',
-    timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
-  },
+  { id: '1', type: 'signature', message: 'Meeting minutes signed by Johan Lindqvist', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+  { id: '2', type: 'document', message: 'Q3 Financial Report uploaded', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000) },
+  { id: '3', type: 'meeting', message: 'Board Meeting minutes approved', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+  { id: '4', type: 'action', message: 'Action item completed: Review budget proposal', timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000) },
 ];
 
 const mockFinancialSnapshot = {
@@ -102,280 +76,263 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
-  const getMeetingTypeBadge = (type: string) => {
-    const colors: Record<string, string> = {
-      board: 'bg-blue-100 text-blue-800',
-      committee: 'bg-purple-100 text-purple-800',
-      general: 'bg-green-100 text-green-800',
+  const getMeetingTypeStyle = (type: string) => {
+    const styles: Record<string, string> = {
+      board: 'bg-blue-500/10 text-blue-400',
+      committee: 'bg-purple-500/10 text-purple-400',
+      general: 'bg-emerald-500/10 text-emerald-400',
     };
-    return colors[type] || 'bg-gray-100 text-gray-800';
+    return styles[type] || 'bg-white/10 text-white/60';
   };
 
   return (
-    <div className="p-8">
+    <div className="p-8 text-white">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight">
           {getGreeting()}, {userProfile?.displayName?.split(' ')[0] || 'there'}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-white/50 mt-1">
           Here&apos;s what&apos;s happening at {currentTenant?.name || 'your organization'}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming Meetings</p>
-                <p className="text-3xl font-bold">{mockStats.upcomingMeetings}</p>
-              </div>
-              <div className="rounded-full bg-blue-100 p-3">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-10">
+        <div className="p-6 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white/40">Upcoming Meetings</p>
+              <p className="text-3xl font-bold mt-1">{mockStats.upcomingMeetings}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 rounded-xl bg-blue-500/10">
+              <Calendar className="h-5 w-5 text-blue-400" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Signatures</p>
-                <p className="text-3xl font-bold">{mockStats.pendingSignatures}</p>
-              </div>
-              <div className="rounded-full bg-amber-100 p-3">
-                <FileText className="h-6 w-6 text-amber-600" />
-              </div>
+        <div className="p-6 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white/40">Pending Signatures</p>
+              <p className="text-3xl font-bold mt-1">{mockStats.pendingSignatures}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 rounded-xl bg-amber-500/10">
+              <FileText className="h-5 w-5 text-amber-400" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Open Action Items</p>
-                <p className="text-3xl font-bold">{mockStats.openActionItems}</p>
-              </div>
-              <div className="rounded-full bg-red-100 p-3">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
+        <div className="p-6 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white/40">Open Action Items</p>
+              <p className="text-3xl font-bold mt-1">{mockStats.openActionItems}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 rounded-xl bg-red-500/10">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Documents This Month</p>
-                <p className="text-3xl font-bold">{mockStats.documentsThisMonth}</p>
-              </div>
-              <div className="rounded-full bg-green-100 p-3">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
+        <div className="p-6 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white/40">Documents This Month</p>
+              <p className="text-3xl font-bold mt-1">{mockStats.documentsThisMonth}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-3 rounded-xl bg-emerald-500/10">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Upcoming Meetings */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <div className="rounded-xl bg-white/[0.02] p-6">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <CardTitle>Upcoming Meetings</CardTitle>
-              <CardDescription>Your scheduled board and committee meetings</CardDescription>
+              <h2 className="text-lg font-semibold">Upcoming Meetings</h2>
+              <p className="text-sm text-white/40">Your scheduled board and committee meetings</p>
             </div>
-            <Link href={`/dashboard/${tenantId}/meetings/new`}>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                New
-              </Button>
+            <Link
+              href={`/dashboard/${tenantId}/meetings/new`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              New
             </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockUpcomingMeetings.map((meeting) => (
-                <Link
-                  key={meeting.id}
-                  href={`/dashboard/${tenantId}/meetings/${meeting.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-primary/10 p-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{meeting.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatRelativeDate(meeting.scheduledAt)}
-                      </p>
-                    </div>
+          </div>
+          <div className="space-y-2">
+            {mockUpcomingMeetings.map((meeting) => (
+              <Link
+                key={meeting.id}
+                href={`/dashboard/${tenantId}/meetings/${meeting.id}`}
+                className="flex items-center justify-between p-4 rounded-lg hover:bg-white/5 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-white/5">
+                    <Calendar className="h-4 w-4 text-white/60" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getMeetingTypeBadge(meeting.type)}>
-                      {meeting.type}
-                    </Badge>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{meeting.title}</p>
+                    <p className="text-sm text-white/40">{formatRelativeDate(meeting.scheduledAt)}</p>
                   </div>
-                </Link>
-              ))}
-            </div>
-            <Link href={`/dashboard/${tenantId}/meetings`}>
-              <Button variant="ghost" className="w-full mt-4">
-                View all meetings
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 text-xs rounded-md ${getMeetingTypeStyle(meeting.type)}`}>
+                    {meeting.type}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-white/20 group-hover:text-white/60 transition-colors" />
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href={`/dashboard/${tenantId}/meetings`}
+            className="flex items-center justify-center gap-2 w-full mt-4 py-2 text-sm text-white/50 hover:text-white transition-colors"
+          >
+            View all meetings
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
         {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates from your organization</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockRecentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3">
-                  <div className="rounded-full bg-muted p-2 mt-0.5">
-                    {activity.type === 'signature' && <FileText className="h-3 w-3" />}
-                    {activity.type === 'document' && <FileText className="h-3 w-3" />}
-                    {activity.type === 'meeting' && <Calendar className="h-3 w-3" />}
-                    {activity.type === 'action' && <CheckCircle className="h-3 w-3" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatRelativeDate(activity.timestamp)}
-                    </p>
-                  </div>
+        <div className="rounded-xl bg-white/[0.02] p-6">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">Recent Activity</h2>
+            <p className="text-sm text-white/40">Latest updates from your organization</p>
+          </div>
+          <div className="space-y-4">
+            {mockRecentActivity.map((activity) => (
+              <div key={activity.id} className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-white/5 mt-0.5">
+                  {activity.type === 'signature' && <FileText className="h-3 w-3 text-white/40" />}
+                  {activity.type === 'document' && <FileText className="h-3 w-3 text-white/40" />}
+                  {activity.type === 'meeting' && <Calendar className="h-3 w-3 text-white/40" />}
+                  {activity.type === 'action' && <CheckCircle className="h-3 w-3 text-white/40" />}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm">{activity.message}</p>
+                  <p className="text-xs text-white/30 mt-0.5">{formatRelativeDate(activity.timestamp)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        {/* Financial Snapshot - Only visible to authorized roles */}
+        {/* Financial Snapshot */}
         {canViewFinancials && (
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <div className="rounded-xl bg-white/[0.02] p-6 lg:col-span-2">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <CardTitle>Financial Snapshot</CardTitle>
-                <CardDescription>Key financial metrics at a glance</CardDescription>
+                <h2 className="text-lg font-semibold">Financial Snapshot</h2>
+                <p className="text-sm text-white/40">Key financial metrics at a glance</p>
               </div>
-              <Link href={`/dashboard/${tenantId}/financials`}>
-                <Button variant="outline" size="sm">
-                  View Details
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
+              <Link
+                href={`/dashboard/${tenantId}/financials`}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-white/60 hover:text-white transition-colors"
+              >
+                View Details
+                <ArrowRight className="h-4 w-4" />
               </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Revenue (YTD)</span>
-                    <div className={`flex items-center text-sm ${mockFinancialSnapshot.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {mockFinancialSnapshot.revenueChange >= 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      )}
-                      {Math.abs(mockFinancialSnapshot.revenueChange)}%
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.revenue, 'SEK')}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="p-5 rounded-xl bg-white/[0.02]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-white/40">Revenue (YTD)</span>
+                  <span className={`flex items-center text-sm ${mockFinancialSnapshot.revenueChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {mockFinancialSnapshot.revenueChange >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                    {Math.abs(mockFinancialSnapshot.revenueChange)}%
+                  </span>
                 </div>
-
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Net Income (YTD)</span>
-                    <div className={`flex items-center text-sm ${mockFinancialSnapshot.netIncomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {mockFinancialSnapshot.netIncomeChange >= 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      )}
-                      {Math.abs(mockFinancialSnapshot.netIncomeChange)}%
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.netIncome, 'SEK')}</p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Cash Balance</span>
-                    <div className={`flex items-center text-sm ${mockFinancialSnapshot.cashChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {mockFinancialSnapshot.cashChange >= 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      )}
-                      {Math.abs(mockFinancialSnapshot.cashChange)}%
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.cashBalance, 'SEK')}</p>
-                </div>
+                <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.revenue, 'SEK')}</p>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="p-5 rounded-xl bg-white/[0.02]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-white/40">Net Income (YTD)</span>
+                  <span className={`flex items-center text-sm ${mockFinancialSnapshot.netIncomeChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {mockFinancialSnapshot.netIncomeChange >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                    {Math.abs(mockFinancialSnapshot.netIncomeChange)}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.netIncome, 'SEK')}</p>
+              </div>
+
+              <div className="p-5 rounded-xl bg-white/[0.02]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-white/40">Cash Balance</span>
+                  <span className={`flex items-center text-sm ${mockFinancialSnapshot.cashChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {mockFinancialSnapshot.cashChange >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                    {Math.abs(mockFinancialSnapshot.cashChange)}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.cashBalance, 'SEK')}</p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Quick Actions */}
-        <Card className={canViewFinancials ? '' : 'lg:col-span-2'}>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Link href={`/dashboard/${tenantId}/meetings/new`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <Calendar className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium">Schedule Meeting</p>
-                    <p className="text-xs text-muted-foreground">Create a new board meeting</p>
-                  </div>
-                </Button>
-              </Link>
-              <Link href={`/dashboard/${tenantId}/documents`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <FileText className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium">Upload Document</p>
-                    <p className="text-xs text-muted-foreground">Add files to the repository</p>
-                  </div>
-                </Button>
-              </Link>
-              <Link href={`/dashboard/${tenantId}/members`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <Users className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium">Manage Members</p>
-                    <p className="text-xs text-muted-foreground">Invite or update members</p>
-                  </div>
-                </Button>
-              </Link>
-              <Link href={`/dashboard/${tenantId}/financials`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <BarChart3 className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <p className="font-medium">View Financials</p>
-                    <p className="text-xs text-muted-foreground">Check latest reports</p>
-                  </div>
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <div className={`rounded-xl bg-white/[0.02] p-6 ${canViewFinancials ? '' : 'lg:col-span-2'}`}>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">Quick Actions</h2>
+            <p className="text-sm text-white/40">Common tasks and shortcuts</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href={`/dashboard/${tenantId}/meetings/new`}
+              className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors group"
+            >
+              <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                <Calendar className="h-5 w-5 text-white/60" />
+              </div>
+              <div>
+                <p className="font-medium">Schedule Meeting</p>
+                <p className="text-xs text-white/40">Create a new board meeting</p>
+              </div>
+            </Link>
+            <Link
+              href={`/dashboard/${tenantId}/documents`}
+              className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors group"
+            >
+              <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                <FileText className="h-5 w-5 text-white/60" />
+              </div>
+              <div>
+                <p className="font-medium">Upload Document</p>
+                <p className="text-xs text-white/40">Add files to the repository</p>
+              </div>
+            </Link>
+            <Link
+              href={`/dashboard/${tenantId}/members`}
+              className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors group"
+            >
+              <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                <Users className="h-5 w-5 text-white/60" />
+              </div>
+              <div>
+                <p className="font-medium">Manage Members</p>
+                <p className="text-xs text-white/40">Invite or update members</p>
+              </div>
+            </Link>
+            <Link
+              href={`/dashboard/${tenantId}/financials`}
+              className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors group"
+            >
+              <div className="p-2 rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors">
+                <BarChart3 className="h-5 w-5 text-white/60" />
+              </div>
+              <div>
+                <p className="font-medium">View Financials</p>
+                <p className="text-xs text-white/40">Check latest reports</p>
+              </div>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

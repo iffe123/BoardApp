@@ -11,36 +11,9 @@ import {
   AlertTriangle,
   UserCog,
   Trash2,
+  Users,
+  X,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserAvatar } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { usePermissions } from '@/contexts/auth-context';
 import { formatRelativeDate } from '@/lib/utils';
 import type { Member, MemberRole } from '@/types/schema';
@@ -50,414 +23,340 @@ import { Timestamp } from 'firebase/firestore';
 interface MemberWithUser extends Member {
   displayName: string;
   email: string;
-  avatarUrl?: string;
-  lastLoginAt?: Timestamp;
+  photoUrl?: string;
 }
 
-// Mock members
+// Mock members data
 const mockMembers: MemberWithUser[] = [
   {
     id: '1',
     tenantId: 'tenant1',
-    userId: '1',
+    userId: 'user1',
     role: 'owner',
     displayName: 'Anna Lindqvist',
     email: 'anna@example.com',
-    title: 'CEO & Chair',
-    department: 'Executive',
+    title: 'Chairman of the Board',
     isActive: true,
-    conflicts: [],
+    conflicts: [{
+      id: 'c1',
+      entityName: 'TechCorp AB',
+      entityType: 'company',
+      relationship: 'Board member',
+      declaredAt: Timestamp.fromDate(new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)),
+      isActive: true,
+    }],
     permissions: { canCreateMeetings: true, canManageMembers: true, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: true },
     joinedAt: Timestamp.fromDate(new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)),
-    lastLoginAt: Timestamp.fromDate(new Date(Date.now() - 1 * 60 * 60 * 1000)),
   },
   {
     id: '2',
     tenantId: 'tenant1',
-    userId: '2',
+    userId: 'user2',
     role: 'secretary',
     displayName: 'Erik Johansson',
     email: 'erik@example.com',
     title: 'Board Secretary',
-    department: 'Legal',
     isActive: true,
     conflicts: [],
     permissions: { canCreateMeetings: true, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: true },
     joinedAt: Timestamp.fromDate(new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)),
-    lastLoginAt: Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000)),
   },
   {
     id: '3',
     tenantId: 'tenant1',
-    userId: '3',
+    userId: 'user3',
     role: 'director',
     displayName: 'Maria Svensson',
     email: 'maria@example.com',
-    title: 'Board Director',
+    title: 'Board Member',
     isActive: true,
-    conflicts: [],
+    conflicts: [{
+      id: 'c2',
+      entityName: 'Svensson Invest AB',
+      entityType: 'company',
+      relationship: 'Owner',
+      declaredAt: Timestamp.fromDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
+      isActive: true,
+    }],
     permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: false },
     joinedAt: Timestamp.fromDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
-    lastLoginAt: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)),
   },
   {
     id: '4',
     tenantId: 'tenant1',
-    userId: '4',
+    userId: 'user4',
     role: 'director',
     displayName: 'Karl Nilsson',
     email: 'karl@example.com',
     title: 'External Director',
     isActive: true,
-    conflicts: [
-      {
-        id: 'c1',
-        entityName: 'TechCorp AB',
-        entityType: 'company',
-        organizationNumber: '556123-4567',
-        relationship: 'Board Member',
-        isActive: true,
-        declaredAt: Timestamp.fromDate(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)),
-      },
-      {
-        id: 'c2',
-        entityName: 'Innovation Partners',
-        entityType: 'company',
-        relationship: 'Investor',
-        isActive: true,
-        declaredAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-      },
-    ],
+    conflicts: [],
     permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: false },
-    joinedAt: Timestamp.fromDate(new Date(Date.now() - 120 * 24 * 60 * 60 * 1000)),
-    lastLoginAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
+    joinedAt: Timestamp.fromDate(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)),
   },
   {
     id: '5',
     tenantId: 'tenant1',
-    userId: '5',
+    userId: 'user5',
     role: 'observer',
     displayName: 'Lisa Andersson',
     email: 'lisa@example.com',
-    title: 'Employee Representative',
+    title: 'Observer',
     isActive: true,
     conflicts: [],
     permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: false, canSignDocuments: false, canManageDocuments: false },
-    joinedAt: Timestamp.fromDate(new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)),
-    lastLoginAt: Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
-  },
-  {
-    id: '6',
-    tenantId: 'tenant1',
-    userId: '6',
-    role: 'auditor',
-    displayName: 'Johan Bergström',
-    email: 'johan@audit.com',
-    title: 'External Auditor',
-    department: 'Audit Firm AB',
-    isActive: true,
-    conflicts: [],
-    permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: true, canSignDocuments: false, canManageDocuments: false },
-    joinedAt: Timestamp.fromDate(new Date(Date.now() - 200 * 24 * 60 * 60 * 1000)),
+    joinedAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
   },
 ];
 
 const roleLabels: Record<MemberRole, string> = {
   owner: 'Owner',
-  admin: 'Administrator',
-  secretary: 'Secretary',
+  admin: 'Admin',
   chair: 'Chair',
-  director: 'Board Director',
+  secretary: 'Secretary',
+  director: 'Director',
   observer: 'Observer',
   auditor: 'Auditor',
 };
 
 const roleColors: Record<MemberRole, string> = {
-  owner: 'bg-purple-100 text-purple-800',
-  admin: 'bg-blue-100 text-blue-800',
-  secretary: 'bg-green-100 text-green-800',
-  chair: 'bg-amber-100 text-amber-800',
-  director: 'bg-slate-100 text-slate-800',
-  observer: 'bg-gray-100 text-gray-800',
-  auditor: 'bg-red-100 text-red-800',
+  owner: 'bg-purple-500/10 text-purple-400',
+  admin: 'bg-amber-500/10 text-amber-400',
+  chair: 'bg-blue-500/10 text-blue-400',
+  secretary: 'bg-emerald-500/10 text-emerald-400',
+  director: 'bg-white/10 text-white/70',
+  observer: 'bg-white/5 text-white/50',
+  auditor: 'bg-cyan-500/10 text-cyan-400',
 };
 
 export default function MembersPage() {
   const params = useParams();
-  void params.tenantId; // Used for routing
+  void params.tenantId;
   const { canManageMembers } = usePermissions();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [, setSelectedMember] = useState<MemberWithUser | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   // Filter members
   const filteredMembers = mockMembers.filter((member) => {
-    const matchesSearch =
+    return (
       searchQuery === '' ||
       member.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch && member.isActive;
+      member.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   });
 
-  // Group by role
+  // Group members by role for stats
   const membersByRole = mockMembers.reduce(
     (acc, member) => {
-      if (member.isActive) {
-        acc[member.role] = (acc[member.role] || 0) + 1;
-      }
+      acc[member.role] = (acc[member.role] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>
   );
 
-  const membersWithConflicts = mockMembers.filter((m) => m.conflicts.length > 0);
+  const membersWithConflicts = mockMembers.filter((m) => m.conflicts.length > 0).length;
 
   return (
-    <div className="p-8">
+    <div className="p-8 text-white">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-3xl font-bold">Members</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage board members, roles, and conflict of interest declarations
+          <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+          <p className="text-white/50 mt-1">
+            Manage board members and their roles
           </p>
         </div>
         {canManageMembers && (
-          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Invite Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite New Member</DialogTitle>
-                <DialogDescription>
-                  Send an invitation to join your organization
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Email Address</Label>
-                  <Input type="email" placeholder="member@company.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select defaultValue="director">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(roleLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Title (optional)</Label>
-                  <Input placeholder="Board Director" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Personal Message (optional)</Label>
-                  <Input placeholder="Welcome to the board!" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => setIsInviteOpen(false)}>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Invitation
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <button
+            onClick={() => setIsInviteOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Invite Member
+          </button>
         )}
       </div>
 
+      {/* Invite Dialog */}
+      {isInviteOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#141414] border border-white/10 rounded-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h2 className="text-lg font-semibold">Invite Member</h2>
+              <button onClick={() => setIsInviteOpen(false)} className="text-white/40 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-white/70">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="member@example.com"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-white/70">Role</label>
+                <select className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/20">
+                  {Object.entries(roleLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-white/70">Title (optional)</label>
+                <input
+                  type="text"
+                  placeholder="Board Member"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 border-t border-white/10">
+              <button
+                onClick={() => setIsInviteOpen(false)}
+                className="flex-1 px-4 py-2 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setIsInviteOpen(false)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Members</div>
-            <div className="text-2xl font-bold">{mockMembers.filter((m) => m.isActive).length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Board Directors</div>
-            <div className="text-2xl font-bold">{membersByRole['director'] || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">With Voting Rights</div>
-            <div className="text-2xl font-bold">
-              {mockMembers.filter((m) => m.isActive && ['owner', 'chair', 'director'].includes(m.role)).length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-muted-foreground">Declared Conflicts</div>
-              {membersWithConflicts.length > 0 && (
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-              )}
-            </div>
-            <div className="text-2xl font-bold">{membersWithConflicts.length}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-5 mb-10">
+        <div className="p-6 rounded-xl bg-white/[0.02]">
+          <p className="text-sm text-white/40">Total Members</p>
+          <p className="text-3xl font-bold mt-1">{mockMembers.length}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-blue-500/10">
+          <p className="text-sm text-blue-400">Directors</p>
+          <p className="text-3xl font-bold mt-1 text-blue-400">{membersByRole['director'] || 0}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-emerald-500/10">
+          <p className="text-sm text-emerald-400">Officers</p>
+          <p className="text-3xl font-bold mt-1 text-emerald-400">
+            {(membersByRole['chair'] || 0) + (membersByRole['secretary'] || 0) + (membersByRole['treasurer'] || 0)}
+          </p>
+        </div>
+        <div className="p-6 rounded-xl bg-white/[0.02]">
+          <p className="text-sm text-white/40">Observers</p>
+          <p className="text-3xl font-bold mt-1">{membersByRole['observer'] || 0}</p>
+        </div>
+        <div className="p-6 rounded-xl bg-amber-500/10">
+          <p className="text-sm text-amber-400">With Conflicts</p>
+          <p className="text-3xl font-bold mt-1 text-amber-400">{membersWithConflicts}</p>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+          <input
+            type="text"
             placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
           />
         </div>
       </div>
 
       {/* Members List */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="divide-y">
-            {filteredMembers.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between p-4 hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-4">
-                  <UserAvatar
-                    name={member.displayName}
-                    imageUrl={member.avatarUrl}
-                    size="md"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{member.displayName}</p>
-                      {member.conflicts.length > 0 && (
-                        <Badge variant="warning" className="gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          {member.conflicts.length} conflict{member.conflicts.length > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {member.title && <span>{member.title}</span>}
-                      {member.title && member.department && <span>•</span>}
-                      {member.department && <span>{member.department}</span>}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
-                  </div>
+      <div className="rounded-xl bg-white/[0.02] overflow-hidden">
+        <div className="divide-y divide-white/5">
+          {filteredMembers.map((member) => (
+            <div
+              key={member.id}
+              className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-medium">
+                  {member.displayName.charAt(0)}
                 </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <Badge variant="outline" className={roleColors[member.role]}>
-                      {roleLabels[member.role]}
-                    </Badge>
-                    {member.lastLoginAt && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Last active {formatRelativeDate(member.lastLoginAt.toDate())}
-                      </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{member.displayName}</p>
+                    {member.conflicts.length > 0 && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-amber-500/10 text-amber-400">
+                        <AlertTriangle className="h-3 w-3" />
+                        Conflict
+                      </span>
                     )}
                   </div>
-
-                  {canManageMembers && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelectedMember(member)}>
-                          <UserCog className="h-4 w-4 mr-2" />
-                          Edit Member
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Shield className="h-4 w-4 mr-2" />
-                          Manage Conflicts
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Message
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove Member
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  <p className="text-sm text-white/40">{member.email}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Conflict of Interest Section */}
-      {membersWithConflicts.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-amber-500" />
-              <CardTitle>Declared Conflicts of Interest (Jäv)</CardTitle>
-            </div>
-            <CardDescription>
-              Members with declared conflicts that may affect voting on certain matters
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {membersWithConflicts.map((member) => (
-                <div key={member.id} className="p-4 rounded-lg border">
-                  <div className="flex items-center gap-3 mb-3">
-                    <UserAvatar name={member.displayName} size="sm" />
-                    <div>
-                      <p className="font-medium">{member.displayName}</p>
-                      <p className="text-sm text-muted-foreground">{member.title}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {member.conflicts.map((conflict) => (
-                      <div
-                        key={conflict.id}
-                        className="flex items-center justify-between p-2 rounded bg-muted/50"
-                      >
-                        <div>
-                          <p className="text-sm font-medium">{conflict.entityName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {conflict.relationship}
-                            {conflict.organizationNumber && ` • ${conflict.organizationNumber}`}
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {conflict.entityType}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <span className={`px-2 py-0.5 text-xs rounded-md ${roleColors[member.role]}`}>
+                    {roleLabels[member.role]}
+                  </span>
+                  <p className="text-xs text-white/30 mt-1">
+                    Joined {formatRelativeDate(member.joinedAt.toDate())}
+                  </p>
                 </div>
-              ))}
+
+                {canManageMembers && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setMenuOpen(menuOpen === member.id ? null : member.id)}
+                      className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                    {menuOpen === member.id && (
+                      <div className="absolute top-full right-0 mt-1 py-1 bg-[#141414] border border-white/10 rounded-lg shadow-xl z-50 min-w-[160px]">
+                        <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:bg-white/5">
+                          <UserCog className="h-4 w-4" />
+                          Edit Role
+                        </button>
+                        <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:bg-white/5">
+                          <Shield className="h-4 w-4" />
+                          Permissions
+                        </button>
+                        <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:bg-white/5">
+                          <AlertTriangle className="h-4 w-4" />
+                          Manage Conflicts
+                        </button>
+                        <div className="border-t border-white/10 my-1" />
+                        <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/5">
+                          <Trash2 className="h-4 w-4" />
+                          Remove Member
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Empty State */}
+      {filteredMembers.length === 0 && (
+        <div className="rounded-xl bg-white/[0.02] p-12 text-center">
+          <Users className="h-12 w-12 mx-auto text-white/20 mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No members found</h3>
+          <p className="text-white/50">
+            Try adjusting your search query
+          </p>
+        </div>
       )}
     </div>
   );
