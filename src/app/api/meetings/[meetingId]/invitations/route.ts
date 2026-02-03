@@ -11,8 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { getDoc, updateDoc } from 'firebase/firestore';
-import type { Meeting, MeetingAttendee } from '@/types/schema';
-import { sendMeetingInvitationEmail, sendBulkMeetingInvitations } from '@/lib/email-service';
+import type { Meeting } from '@/types/schema';
+import { sendBulkMeetingInvitations } from '@/lib/email-service';
 import {
   generateMeetingICalEvent,
   generateMeetingUpdateICalEvent,

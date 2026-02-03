@@ -10,9 +10,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generateText, streamText } from 'ai';
+import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import type { AgendaItem, AgendaItemType } from '@/types/schema';
+import type { AgendaItem } from '@/types/schema';
 
 // ============================================================================
 // TYPES
@@ -48,14 +48,6 @@ interface AssistantRequest {
     locale?: 'en' | 'sv';
   };
   additionalInstructions?: string;
-}
-
-interface GeneratedAgendaItem {
-  title: string;
-  description: string;
-  type: AgendaItemType;
-  estimatedDuration: number;
-  talkingPoints?: string[];
 }
 
 // ============================================================================

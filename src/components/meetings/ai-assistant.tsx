@@ -22,7 +22,6 @@ import {
   ChevronDown,
   Copy,
   Check,
-  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,7 +29,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -41,7 +39,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { AgendaItem, AgendaItemType } from '@/types/schema';
@@ -68,9 +65,6 @@ interface AIAssistantProps {
   agendaItems?: AgendaItem[];
   currentItem?: AgendaItem;
   onAgendaSuggestion?: (items: GeneratedAgendaItem[]) => void;
-  onTalkingPoints?: (points: TalkingPoints) => void;
-  onActionItems?: (items: ActionItemSuggestion[]) => void;
-  onMotionSuggestion?: (motion: MotionSuggestion) => void;
   locale?: 'en' | 'sv';
   className?: string;
 }
@@ -245,7 +239,7 @@ function MotionResult({
   return (
     <div className="space-y-4">
       <div className="p-4 rounded-lg bg-muted">
-        <p className="font-medium italic">"{motion.motionText}"</p>
+        <p className="font-medium italic">&ldquo;{motion.motionText}&rdquo;</p>
       </div>
 
       <div>
@@ -279,9 +273,6 @@ export function AIAssistant({
   agendaItems,
   currentItem,
   onAgendaSuggestion,
-  onTalkingPoints,
-  onActionItems,
-  onMotionSuggestion,
   locale = 'en',
   className,
 }: AIAssistantProps) {

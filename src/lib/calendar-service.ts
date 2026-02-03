@@ -14,8 +14,6 @@
  * - Alarms/Reminders
  */
 
-import { v4 as uuidv4 } from 'uuid';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -80,14 +78,6 @@ export interface CalendarExportOptions {
  */
 function formatDateToICalUTC(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-}
-
-/**
- * Format date to iCal date format (no time)
- * Format: YYYYMMDD
- */
-function formatDateToICalDate(date: Date): string {
-  return date.toISOString().split('T')[0].replace(/-/g, '');
 }
 
 /**

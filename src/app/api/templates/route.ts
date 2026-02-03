@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
-import { getDocs, addDoc, query, orderBy, where } from 'firebase/firestore';
+import { getDocs, addDoc, query, orderBy } from 'firebase/firestore';
 import type { MeetingTemplate } from '@/types/schema';
 import {
   DEFAULT_TEMPLATES,

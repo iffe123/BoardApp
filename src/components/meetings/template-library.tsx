@@ -8,15 +8,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  useDraggable,
-  useDroppable,
-  closestCenter,
-  DragStartEvent,
-  DragEndEvent,
-} from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
 import {
   FileText,
   CheckCircle,
@@ -33,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Collapsible,
@@ -42,20 +34,18 @@ import {
 } from '@/components/ui/collapsible';
 import { cn, formatDuration } from '@/lib/utils';
 import {
-  STANDARD_AGENDA_ITEMS,
   DEFAULT_TEMPLATES,
   getGroupedStandardItems,
   type StandardAgendaItem,
   type TemplateDefinition,
 } from '@/lib/meeting-templates';
-import type { AgendaItem, AgendaItemType } from '@/types/schema';
+import type { AgendaItemType } from '@/types/schema';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 interface TemplateLibraryProps {
-  onItemDrop?: (item: StandardAgendaItem) => void;
   onTemplateSelect?: (templateId: string) => void;
   onAIAssist?: () => void;
   locale?: 'en' | 'sv';
@@ -199,7 +189,6 @@ function TemplateCard({ template, locale, onSelect }: TemplateCardProps) {
 // ============================================================================
 
 export function TemplateLibrary({
-  onItemDrop,
   onTemplateSelect,
   onAIAssist,
   locale = 'en',
