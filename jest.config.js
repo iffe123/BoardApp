@@ -11,8 +11,12 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Mock uuid to avoid ESM issues
+    '^uuid$': '<rootDir>/src/__tests__/__mocks__/uuid.ts',
+    // Mock next/server for API route testing
+    '^next/server$': '<rootDir>/src/__tests__/__mocks__/next-server.ts',
   },
-  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/src/__tests__/__mocks__/'],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
