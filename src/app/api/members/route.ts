@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
-import { getDocs, addDoc, query, orderBy } from 'firebase/firestore';
+import { getDocs, addDoc, getDoc, query, orderBy } from 'firebase/firestore';
 import type { Member } from '@/types/schema';
+import { sendMemberInvitationEmail } from '@/lib/email-service';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 // GET /api/members - List members for a tenant
 export async function GET(request: NextRequest) {
@@ -151,13 +154,35 @@ export async function POST(request: NextRequest) {
 
     const docRef = await addDoc(collections.members(tenantId), member);
 
-    // In real app, send invitation email here
-    // await sendInvitationEmail(email, tenantId, docRef.id);
+    // Get tenant name for the email
+    let organizationName = 'Your Organization';
+    try {
+      const tenantDoc = await getDoc(collections.tenant(tenantId));
+      if (tenantDoc.exists()) {
+        organizationName = tenantDoc.data().name || organizationName;
+      }
+    } catch {
+      // Use default organization name
+    }
+
+    // Send invitation email
+    const inviteUrl = `${APP_URL}/auth/signup?invite=${docRef.id}&tenant=${tenantId}&email=${encodeURIComponent(email)}`;
+
+    const emailResult = await sendMemberInvitationEmail({
+      recipientEmail: email,
+      recipientName: title || '',
+      organizationName,
+      inviterName: invitedBy || 'A team member',
+      role: role.charAt(0).toUpperCase() + role.slice(1), // Capitalize role
+      inviteUrl,
+    });
 
     return NextResponse.json({
       id: docRef.id,
       ...member,
       email, // Include email in response for reference
+      emailSent: emailResult.success,
+      emailError: emailResult.error,
     });
   } catch (error) {
     console.error('Error inviting member:', error);
