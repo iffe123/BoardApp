@@ -1,0 +1,312 @@
+rules_version = '2';
+
+/**
+ * GovernanceOS - Firestore Security Rules
+ *
+ * Implements Custom Claim Multi-Tenancy pattern where user JWTs contain:
+ * {
+ *   "tenants": {
+ *     "org_123": "admin",
+ *     "org_456": "director",
+ *     ...
+ *   }
+ * }
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPER FUNCTIONS
+    // =========================================================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Get user's role for a specific tenant
+    function getTenantRole(tenantId) {
+      return request.auth.token.tenants[tenantId];
+    }
+
+    // Check if user has access to tenant (any role)
+    function hasTenantAccess(tenantId) {
+      return isAuthenticated()
+        && request.auth.token.tenants != null
+        && tenantId in request.auth.token.tenants;
+    }
+
+    // Check if user is admin of tenant
+    function isOrgAdmin(tenantId) {
+      return hasTenantAccess(tenantId)
+        && getTenantRole(tenantId) in ['owner', 'admin'];
+    }
+
+    // Check if user is owner of tenant
+    function isOrgOwner(tenantId) {
+      return hasTenantAccess(tenantId)
+        && getTenantRole(tenantId) == 'owner';
+    }
+
+    // Check if user has specific role or higher
+    function hasRole(tenantId, roles) {
+      return hasTenantAccess(tenantId)
+        && getTenantRole(tenantId) in roles;
+    }
+
+    // Check if user can manage meetings (admin, secretary, chair)
+    function canManageMeetings(tenantId) {
+      return hasRole(tenantId, ['owner', 'admin', 'secretary', 'chair']);
+    }
+
+    // Check if user can view financials
+    function canViewFinancials(tenantId) {
+      return hasRole(tenantId, ['owner', 'admin', 'chair', 'director', 'auditor']);
+    }
+
+    // Check if user can manage documents
+    function canManageDocuments(tenantId) {
+      return hasRole(tenantId, ['owner', 'admin', 'secretary']);
+    }
+
+    // Check if user is document owner
+    function isResourceOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validate timestamp is server time
+    function isValidTimestamp(field) {
+      return request.resource.data[field] == request.time;
+    }
+
+    // =========================================================================
+    // GLOBAL USER COLLECTION
+    // =========================================================================
+
+    match /users/{userId} {
+      // Users can read any user's public profile
+      allow read: if isAuthenticated();
+
+      // Users can only write their own profile
+      allow create: if isResourceOwner(userId);
+      allow update: if isResourceOwner(userId);
+      allow delete: if false; // Users cannot delete their profiles
+
+      // Private notes sub-collection
+      match /private_notes/{noteId} {
+        // Only the owner can access their private notes
+        allow read, write: if isResourceOwner(userId);
+      }
+    }
+
+    // =========================================================================
+    // TENANT COLLECTION
+    // =========================================================================
+
+    match /tenants/{tenantId} {
+      // Members can read tenant info
+      allow read: if hasTenantAccess(tenantId);
+
+      // Only admins can update tenant settings
+      allow update: if isOrgAdmin(tenantId);
+
+      // Only owners can delete tenant
+      allow delete: if isOrgOwner(tenantId);
+
+      // Tenant creation is handled by Cloud Functions
+      allow create: if false;
+
+      // -----------------------------------------------------------------------
+      // MEMBERS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /members/{memberId} {
+        // All tenant members can read member list
+        allow read: if hasTenantAccess(tenantId);
+
+        // Only admins can manage members
+        allow create: if isOrgAdmin(tenantId);
+        allow update: if isOrgAdmin(tenantId)
+          // Prevent changing role to owner unless current user is owner
+          && (request.resource.data.role != 'owner' || isOrgOwner(tenantId));
+        allow delete: if isOrgAdmin(tenantId)
+          // Cannot delete owners
+          && resource.data.role != 'owner';
+      }
+
+      // -----------------------------------------------------------------------
+      // MEETINGS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /meetings/{meetingId} {
+        // Members can read meetings they're invited to
+        allow read: if hasTenantAccess(tenantId);
+
+        // Admins, secretaries, and chairs can create meetings
+        allow create: if canManageMeetings(tenantId)
+          && request.resource.data.tenantId == tenantId;
+
+        // Admins, secretaries, and chairs can update meetings
+        allow update: if canManageMeetings(tenantId)
+          && request.resource.data.tenantId == tenantId;
+
+        // Only admins can delete meetings
+        allow delete: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // DOCUMENTS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /documents/{documentId} {
+        // Check document visibility
+        function canViewDocument() {
+          let doc = resource.data;
+          return hasTenantAccess(tenantId) && (
+            // Public documents visible to all members
+            doc.visibility == 'shared'
+            // Internal documents visible to non-observers
+            || (doc.visibility == 'internal' && getTenantRole(tenantId) != 'observer')
+            // Confidential documents only to specified members or admins
+            || (doc.visibility == 'confidential' && (
+              isOrgAdmin(tenantId)
+              || request.auth.uid in doc.allowedMemberIds
+              || getTenantRole(tenantId) in doc.allowedRoles
+            ))
+          );
+        }
+
+        allow read: if canViewDocument();
+
+        // Document management permissions
+        allow create: if canManageDocuments(tenantId)
+          && request.resource.data.tenantId == tenantId;
+        allow update: if canManageDocuments(tenantId);
+        allow delete: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // FINANCIAL PERIODS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /financials/{periodId} {
+        // Financial data readable by board members and auditors
+        allow read: if canViewFinancials(tenantId);
+
+        // Only admins can manage financial data
+        allow create: if isOrgAdmin(tenantId)
+          && request.resource.data.tenantId == tenantId;
+        allow update: if isOrgAdmin(tenantId);
+        allow delete: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // DECISIONS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /decisions/{decisionId} {
+        // All members can read decisions
+        allow read: if hasTenantAccess(tenantId);
+
+        // Secretaries and admins can create/update decisions
+        allow create: if canManageMeetings(tenantId)
+          && request.resource.data.tenantId == tenantId;
+        allow update: if canManageMeetings(tenantId);
+
+        // Only admins can delete decisions (should be rare)
+        allow delete: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // MEETING TEMPLATES SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /templates/{templateId} {
+        allow read: if hasTenantAccess(tenantId);
+        allow write: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // ERP CONNECTIONS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /erp_connections/{connectionId} {
+        // Only admins can view and manage ERP connections
+        allow read: if isOrgAdmin(tenantId);
+        allow write: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // AUDIT LOGS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /audit_logs/{logId} {
+        // Admins and auditors can read audit logs
+        allow read: if hasRole(tenantId, ['owner', 'admin', 'auditor']);
+
+        // Audit logs are created by Cloud Functions only
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      // -----------------------------------------------------------------------
+      // SIGNATURE AUDITS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /signature_audits/{auditId} {
+        // Admins and auditors can read signature audits
+        allow read: if hasRole(tenantId, ['owner', 'admin', 'auditor', 'chair']);
+
+        // Signature audits are created by Cloud Functions only
+        allow write: if false;
+      }
+
+      // -----------------------------------------------------------------------
+      // NOTIFICATIONS SUB-COLLECTION
+      // -----------------------------------------------------------------------
+
+      match /notifications/{notificationId} {
+        // Users can only read their own notifications
+        allow read: if isAuthenticated()
+          && resource.data.userId == request.auth.uid;
+
+        // Users can mark their own notifications as read
+        allow update: if isAuthenticated()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['read', 'readAt']);
+
+        // Notifications created by Cloud Functions only
+        allow create: if false;
+        allow delete: if false;
+      }
+    }
+
+    // =========================================================================
+    // SYSTEM-LEVEL COLLECTIONS
+    // =========================================================================
+
+    // Public meeting templates (system-wide)
+    match /system_templates/{templateId} {
+      allow read: if isAuthenticated();
+      // Only system admins can manage (via Admin SDK)
+      allow write: if false;
+    }
+
+    // System logs (Cloud Functions only)
+    match /system_logs/{logId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Client manager profiles
+    match /client_managers/{managerId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+      allow write: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}
