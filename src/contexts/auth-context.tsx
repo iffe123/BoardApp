@@ -21,6 +21,7 @@ import {
   User,
   collections,
   getDoc,
+  getDocs,
   setDoc,
   Timestamp,
 } from '@/lib/firebase';
@@ -164,6 +165,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // Fetch memberships from Firestore as fallback when claims are empty
+  const fetchMembershipsFromFirestore = useCallback(async (userId: string): Promise<TenantClaims> => {
+    try {
+      // Query all tenants and check for membership
+      const tenantsSnapshot = await getDocs(collections.tenants());
+      const memberships: TenantClaims = {};
+
+      for (const tenantDoc of tenantsSnapshot.docs) {
+        const memberDoc = await getDoc(collections.member(tenantDoc.id, userId));
+        if (memberDoc.exists()) {
+          const memberData = memberDoc.data();
+          memberships[tenantDoc.id] = memberData.role as MemberRole;
+        }
+      }
+
+      return memberships;
+    } catch (err) {
+      console.error('Error fetching memberships from Firestore:', err);
+      return {};
+    }
+  }, []);
+
   // Set current tenant
   const setCurrentTenant = useCallback(async (tenantId: string) => {
     if (!tenantClaims[tenantId]) {
@@ -213,8 +236,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         setUserProfile(profile);
 
-        // Extract tenant claims
-        const claims = await extractTenantClaims(firebaseUser);
+        // Extract tenant claims from JWT, fallback to Firestore
+        let claims = await extractTenantClaims(firebaseUser);
+
+        // If no claims from JWT, check Firestore memberships as fallback
+        if (Object.keys(claims).length === 0) {
+          claims = await fetchMembershipsFromFirestore(firebaseUser.uid);
+        }
+
+        // Also check for pending tenant from recent org creation
+        const pendingTenantId = localStorage.getItem('governanceos_pending_tenant');
+        if (pendingTenantId && !claims[pendingTenantId]) {
+          // Check if user is member of pending tenant
+          const memberDoc = await getDoc(collections.member(pendingTenantId, firebaseUser.uid));
+          if (memberDoc.exists()) {
+            const memberData = memberDoc.data();
+            claims[pendingTenantId] = memberData.role as MemberRole;
+          }
+          localStorage.removeItem('governanceos_pending_tenant');
+        }
+
         setTenantClaims(claims);
 
         // Restore or set current tenant
@@ -243,7 +284,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile, createUserProfile, extractTenantClaims, fetchTenant]);
+  }, [fetchUserProfile, createUserProfile, extractTenantClaims, fetchMembershipsFromFirestore, fetchTenant]);
 
   // Auth actions
   const signInWithEmail = useCallback(async (email: string, password: string) => {

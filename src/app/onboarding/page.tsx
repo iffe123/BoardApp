@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
-import { collections, setDoc, Timestamp } from '@/lib/firebase';
-import type { Tenant } from '@/types/schema';
+import { collections, Timestamp, writeBatch, db } from '@/lib/firebase';
+import type { Tenant, Member } from '@/types/schema';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -71,14 +71,39 @@ export default function OnboardingPage() {
         updatedAt: Timestamp.now(),
       };
 
-      await setDoc(collections.tenant(tenantId), tenant);
+      // Create tenant and member in a batch
+      const batch = writeBatch(db);
 
-      // Note: In a real app, you'd also need to:
-      // 1. Add the user as a member with 'owner' role
-      // 2. Update the user's custom claims via a Cloud Function
-      // For now, we'll just redirect and show a success message
+      // Add tenant document
+      batch.set(collections.tenant(tenantId), tenant);
 
-      // Redirect to dashboard (in real app, wait for claims to propagate)
+      // Add current user as owner member
+      const member: Omit<Member, 'id'> = {
+        tenantId: tenantId,
+        userId: user?.uid || '',
+        role: 'owner',
+        joinedAt: Timestamp.now(),
+        permissions: {
+          canCreateMeetings: true,
+          canManageMembers: true,
+          canAccessFinancials: true,
+          canSignDocuments: true,
+          canManageDocuments: true,
+        },
+        conflicts: [],
+        isActive: true,
+        invitedAt: Timestamp.now(),
+        acceptedAt: Timestamp.now(),
+      };
+      batch.set(collections.member(tenantId, user?.uid || ''), member);
+
+      await batch.commit();
+
+      // Store tenant ID in localStorage for immediate access
+      localStorage.setItem('governanceos_current_tenant', tenantId);
+      localStorage.setItem('governanceos_pending_tenant', tenantId);
+
+      // Redirect to dashboard
       router.push(`/dashboard/${tenantId}`);
     } catch (err) {
       console.error('Error creating organization:', err);
