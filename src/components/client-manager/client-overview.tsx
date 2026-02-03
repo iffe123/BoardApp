@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
 import {
   Building2,
   Users,
@@ -24,9 +23,6 @@ import {
   Filter,
   LayoutGrid,
   List,
-  BarChart3,
-  Bell,
-  Settings,
   Plus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -40,10 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
-import type { Tenant, Meeting, MemberRole } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
+import type { Tenant, MemberRole } from '@/types/schema';
 
 // ============================================================================
 // TYPES
@@ -359,7 +353,7 @@ export function ClientOverview({ clients, onSelectClient }: ClientOverviewProps)
 
   // Filter and sort clients
   const filteredClients = useMemo(() => {
-    let result = clients.filter(
+    const result = clients.filter(
       (c) =>
         c.tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.tenant.organizationNumber?.includes(searchQuery)

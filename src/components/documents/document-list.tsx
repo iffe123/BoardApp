@@ -6,7 +6,7 @@
  * Provides document listing, upload, and annotation capabilities.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   FileText,
   Upload,
@@ -15,8 +15,6 @@ import {
   Eye,
   Lock,
   Unlock,
-  Tag,
-  Calendar,
   User,
   Search,
   Filter,
@@ -25,10 +23,9 @@ import {
   FileSpreadsheet,
   FileImage,
   File,
-  AlertCircle,
   Check,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -66,9 +63,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn, formatFileSize, formatRelativeTime, truncate } from '@/lib/utils';
+import { cn, formatFileSize, formatRelativeTime } from '@/lib/utils';
 import type { Document, DocumentCategory } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
 
 // ============================================================================
 // TYPES
@@ -459,7 +455,7 @@ export function DocumentList({
     return matchesSearch && matchesCategory;
   });
 
-  // Group by category
+  // Group by category (prepared for grouped view mode)
   const groupedDocuments = filteredDocuments.reduce(
     (acc, doc) => {
       const key = doc.category;
@@ -469,6 +465,7 @@ export function DocumentList({
     },
     {} as Record<string, Document[]>
   );
+  void groupedDocuments; // Available for grouped view mode
 
   return (
     <div className="space-y-4">

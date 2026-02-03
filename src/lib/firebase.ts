@@ -72,6 +72,18 @@ let db: Firestore;
 let storage: FirebaseStorage;
 
 function initializeFirebase() {
+  // Skip initialization during build if no API key is available
+  if (!firebaseConfig.apiKey) {
+    console.warn('Firebase API key not found. Using mock Firebase configuration.');
+    // Return mock objects for build time
+    return {
+      app: null as unknown as FirebaseApp,
+      auth: null as unknown as Auth,
+      db: null as unknown as Firestore,
+      storage: null as unknown as FirebaseStorage,
+    };
+  }
+
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
   } else {

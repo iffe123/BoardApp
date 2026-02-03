@@ -40,7 +40,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn, getDecisionOutcomeColor, getAgendaItemTypeColor } from '@/lib/utils';
 import type { MeetingMinutes, MinuteItem, MinuteSignature, ActionItem } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
 
 // ============================================================================
 // TYPES

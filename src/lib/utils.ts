@@ -39,6 +39,13 @@ export function formatRelativeTime(date: Date, locale: string = 'sv-SE'): string
 }
 
 /**
+ * Format relative date (alias for formatRelativeTime for compatibility)
+ */
+export function formatRelativeDate(date: Date, locale: string = 'sv-SE'): string {
+  return formatRelativeTime(date, locale);
+}
+
+/**
  * Format duration in minutes to human readable
  */
 export function formatDuration(minutes: number): string {

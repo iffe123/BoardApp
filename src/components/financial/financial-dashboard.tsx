@@ -11,10 +11,7 @@ import React, { useMemo, useState } from 'react';
 import {
   LineChart,
   Line,
-  BarChart,
   Bar,
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,7 +23,6 @@ import {
 } from 'recharts';
 import {
   TrendingUp,
-  TrendingDown,
   DollarSign,
   BarChart3,
   PieChart,
@@ -470,7 +466,7 @@ export function FinancialDashboard({
                       <XAxis dataKey="period" tickFormatter={(v) => v.slice(5)} />
                       <YAxis tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`} />
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value, currency, locale)}
+                        formatter={(value) => typeof value === 'number' ? formatCurrency(value, currency, locale) : value}
                       />
                       <Legend />
                       <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" />
@@ -520,7 +516,7 @@ export function FinancialDashboard({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="period" tickFormatter={(v) => v.slice(5)} />
                       <YAxis tickFormatter={(v) => `${v}%`} />
-                      <Tooltip formatter={(v: number) => formatPercentage(v)} />
+                      <Tooltip formatter={(v) => typeof v === 'number' ? formatPercentage(v) : v} />
                       <Legend />
                       <Line
                         type="monotone"

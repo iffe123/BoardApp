@@ -71,13 +71,7 @@ export function MeetingCard({ meeting, tenantId, onClick, className }: MeetingCa
   ).length;
   const hasQuorum = attendeesAccepted >= meeting.quorumRequired;
 
-  const CardWrapper = onClick ? 'div' : Link;
-  const cardProps = onClick
-    ? { onClick, className: 'cursor-pointer' }
-    : { href: `/dashboard/${tenantId}/meetings/${meeting.id}` };
-
-  return (
-    <CardWrapper {...cardProps}>
+  const cardContent = (
       <Card
         className={cn(
           'transition-all hover:shadow-md hover:border-primary/50',
@@ -191,7 +185,20 @@ export function MeetingCard({ meeting, tenantId, onClick, className }: MeetingCa
           </div>
         </CardContent>
       </Card>
-    </CardWrapper>
+  );
+
+  if (onClick) {
+    return (
+      <div onClick={onClick} className="cursor-pointer">
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={`/dashboard/${tenantId}/meetings/${meeting.id}`}>
+      {cardContent}
+    </Link>
   );
 }
 
