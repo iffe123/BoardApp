@@ -710,11 +710,12 @@ export function templateDefinitionToMeetingTemplate(
     name: locale === 'sv' ? definition.nameSv : definition.name,
     description: locale === 'sv' ? definition.descriptionSv : definition.description,
     meetingType: definition.meetingType,
-    agendaItems: agendaItems.map(item => ({
+    agendaItems: agendaItems.map((item, index) => ({
       title: item.title,
       description: item.description,
       type: item.type,
       estimatedDuration: item.estimatedDuration,
+      orderIndex: index,
       documentIds: [],
       conflictKeywords: [],
       recusedMemberIds: [],

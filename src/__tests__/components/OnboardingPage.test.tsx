@@ -26,7 +26,6 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock Firebase
-const mockWriteBatch = jest.fn();
 const mockBatchSet = jest.fn();
 const mockBatchCommit = jest.fn();
 
