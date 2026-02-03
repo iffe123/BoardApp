@@ -142,7 +142,7 @@ describe('Meetings API', () => {
       );
 
       const response = await GET(request);
-      const data = await response.json();
+      await response.json();
 
       expect(response.status).toBe(200);
       expect(mockWhere).toHaveBeenCalledWith('status', '==', 'scheduled');
