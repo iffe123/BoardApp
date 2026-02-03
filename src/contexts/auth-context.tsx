@@ -10,7 +10,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import {
   auth,
-  db,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -93,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [tenantClaims, setTenantClaims] = useState<TenantClaims>({});
   const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
-  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [currentTenant, setCurrentTenantState] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -175,7 +174,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const tenant = await fetchTenant(tenantId);
     if (tenant) {
       setCurrentTenantId(tenantId);
-      setCurrentTenant(tenant);
+      setCurrentTenantState(tenant);
       // Persist selection
       localStorage.setItem('governanceos_current_tenant', tenantId);
     }
@@ -225,19 +224,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (savedTenantId && claims[savedTenantId]) {
           const tenant = await fetchTenant(savedTenantId);
           setCurrentTenantId(savedTenantId);
-          setCurrentTenant(tenant);
+          setCurrentTenantState(tenant);
         } else if (tenantIds.length > 0) {
           const firstTenantId = tenantIds[0];
           const tenant = await fetchTenant(firstTenantId);
           setCurrentTenantId(firstTenantId);
-          setCurrentTenant(tenant);
+          setCurrentTenantState(tenant);
         }
       } else {
         setUser(null);
         setUserProfile(null);
         setTenantClaims({});
         setCurrentTenantId(null);
-        setCurrentTenant(null);
+        setCurrentTenantState(null);
       }
 
       setIsLoading(false);

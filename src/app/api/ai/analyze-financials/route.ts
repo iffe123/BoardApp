@@ -6,13 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 interface FinancialPeriodData {
   period: string;
@@ -156,23 +152,14 @@ Please provide your analysis in the following JSON format:
 
 Respond with only the JSON object, no additional text.`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
+    const { text: responseText } = await generateText({
+      model: anthropic('claude-3-5-sonnet-20241022'),
       system: systemPrompt,
+      prompt: userPrompt,
     });
 
-    // Extract the text content
-    const textContent = response.content.find((c) => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from AI');
-    }
+    // Use the text response directly
+    const textContent = { text: responseText };
 
     // Parse the JSON response
     let analysis: AnalysisResponse;
@@ -203,15 +190,9 @@ Respond with only the JSON object, no additional text.`;
   } catch (error) {
     console.error('Financial analysis error:', error);
 
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json(
-        { error: `AI API error: ${error.message}` },
-        { status: error.status || 500 }
-      );
-    }
-
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to generate financial analysis' },
+      { error: `Failed to generate financial analysis: ${errorMessage}` },
       { status: 500 }
     );
   }

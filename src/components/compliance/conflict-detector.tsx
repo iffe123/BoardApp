@@ -12,9 +12,7 @@ import {
   AlertTriangle,
   Shield,
   UserX,
-  Eye,
   EyeOff,
-  Check,
   X,
   Info,
   Users,
@@ -299,7 +297,10 @@ interface RecusalOverlayProps {
   children: React.ReactNode;
 }
 
-export function RecusalOverlay({ isRecused, memberName, reason, children }: RecusalOverlayProps) {
+export function RecusalOverlay({ isRecused, memberName: _memberName, reason: _reason, children }: RecusalOverlayProps) {
+  // memberName and reason are available for future use in the overlay message
+  void _memberName;
+  void _reason;
   if (!isRecused) return <>{children}</>;
 
   return (
@@ -377,8 +378,8 @@ export function ConflictDetector({
     [agendaItem, members]
   );
 
-  // Check if current user is recused
-  const isCurrentUserRecused = agendaItem.recusedMemberIds?.includes(currentUserId);
+  // Check if current user is recused (available for future use)
+  void agendaItem.recusedMemberIds?.includes(currentUserId);
 
   // If no conflicts detected, show status badge
   if (conflictMatches.length === 0) {
@@ -428,10 +429,12 @@ interface ConflictRegisterProps {
 
 export function ConflictRegister({
   member,
-  onAddConflict,
+  onAddConflict: _onAddConflict,
   onRemoveConflict,
   canEdit,
 }: ConflictRegisterProps) {
+  // onAddConflict available for future "Add Conflict" functionality
+  void _onAddConflict;
   const activeConflicts = member.conflicts?.filter((c) => c.isActive) || [];
   const inactiveConflicts = member.conflicts?.filter((c) => !c.isActive) || [];
 
