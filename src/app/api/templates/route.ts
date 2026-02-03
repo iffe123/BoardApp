@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         const snapshot = await getDocs(templatesQuery);
 
         snapshot.forEach((doc) => {
-          const templateData = doc.data() as MeetingTemplate;
+          const templateData = doc.data() as Omit<MeetingTemplate, 'id'>;
 
           // Filter by meeting type if specified
           if (meetingType && templateData.meetingType !== meetingType) {
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
           }
 
           templates.push({
-            id: doc.id,
             ...templateData,
+            id: doc.id,
             isSystem: false,
           });
         });
