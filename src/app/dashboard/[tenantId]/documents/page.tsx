@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Search,
@@ -19,6 +19,9 @@ import {
   FileSpreadsheet,
   FileImage,
   Calendar,
+  Loader2,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +44,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -51,106 +65,8 @@ import {
 } from '@/components/ui/select';
 import { cn, formatFileSize, formatRelativeDate } from '@/lib/utils';
 import type { Document, DocumentCategory } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
-
-// Mock documents
-const mockDocuments: Document[] = [
-  {
-    id: '1',
-    tenantId: 'tenant1',
-    name: 'Q4 2024 Board Pack.pdf',
-    description: 'Complete board pack for Q4 2024 meeting',
-    category: 'board_pack',
-    mimeType: 'application/pdf',
-    size: 2456000,
-    storagePath: '/documents/q4-board-pack.pdf',
-    version: 1,
-    visibility: 'internal',
-    meetingIds: ['1'],
-    agendaItemIds: [],
-    tags: ['Q4', '2024', 'board pack'],
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)),
-    uploadedBy: 'user1',
-    isArchived: false,
-  },
-  {
-    id: '2',
-    tenantId: 'tenant1',
-    name: 'November Board Minutes.pdf',
-    description: 'Signed minutes from November board meeting',
-    category: 'minutes',
-    mimeType: 'application/pdf',
-    size: 845000,
-    storagePath: '/documents/nov-minutes.pdf',
-    version: 2,
-    visibility: 'internal',
-    meetingIds: ['3'],
-    agendaItemIds: [],
-    tags: ['minutes', 'November', '2024'],
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)),
-    uploadedBy: 'user2',
-    isArchived: false,
-  },
-  {
-    id: '3',
-    tenantId: 'tenant1',
-    name: 'Financial Report Q3 2024.xlsx',
-    description: 'Quarterly financial report with detailed analysis',
-    category: 'financial',
-    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    size: 1250000,
-    storagePath: '/documents/q3-financials.xlsx',
-    version: 1,
-    visibility: 'confidential',
-    meetingIds: [],
-    agendaItemIds: [],
-    tags: ['financial', 'Q3', '2024'],
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
-    uploadedBy: 'user2',
-    isArchived: false,
-  },
-  {
-    id: '4',
-    tenantId: 'tenant1',
-    name: 'Corporate Governance Policy.pdf',
-    description: 'Updated corporate governance guidelines',
-    category: 'policy',
-    mimeType: 'application/pdf',
-    size: 567000,
-    storagePath: '/documents/governance-policy.pdf',
-    version: 3,
-    visibility: 'internal',
-    meetingIds: [],
-    agendaItemIds: [],
-    tags: ['policy', 'governance'],
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)),
-    uploadedBy: 'user1',
-    isArchived: false,
-  },
-  {
-    id: '5',
-    tenantId: 'tenant1',
-    name: 'Supplier Agreement - TechCorp.pdf',
-    description: 'Service agreement with TechCorp AB',
-    category: 'contract',
-    mimeType: 'application/pdf',
-    size: 1890000,
-    storagePath: '/documents/techcorp-agreement.pdf',
-    version: 1,
-    visibility: 'confidential',
-    meetingIds: [],
-    agendaItemIds: [],
-    tags: ['contract', 'TechCorp', 'supplier'],
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)),
-    uploadedBy: 'user1',
-    isArchived: false,
-  },
-];
+import { useAuth, usePermissions } from '@/contexts/auth-context';
+import { collections, onSnapshot, query, orderBy, where, db } from '@/lib/firebase';
 
 type ViewMode = 'grid' | 'list';
 
@@ -182,34 +98,176 @@ function getFileIcon(mimeType: string) {
 
 export default function DocumentsPage() {
   const params = useParams();
-  void params.tenantId; // Will be used for API calls
+  const tenantId = params.tenantId as string;
+  const { user, userProfile } = useAuth();
+  const { canManageDocuments } = usePermissions();
 
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filterCategory, setFilterCategory] = useState<DocumentCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+
+  // Upload form state
+  const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
+  const [uploadCategory, setUploadCategory] = useState<DocumentCategory>('other');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadTags, setUploadTags] = useState('');
+  const [uploadVisibility, setUploadVisibility] = useState<'internal' | 'shared' | 'confidential'>('internal');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch documents from Firestore
+  useEffect(() => {
+    if (!tenantId || !db) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const documentsRef = collections.documents(tenantId);
+      const documentsQuery = query(
+        documentsRef,
+        where('isArchived', '==', false),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(
+        documentsQuery,
+        (snapshot) => {
+          const fetchedDocs: Document[] = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Document[];
+          setDocuments(fetchedDocs);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Error fetching documents:', err);
+          setError('Failed to load documents');
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Error setting up listener:', err);
+      setError('Failed to connect to database');
+      setLoading(false);
+    }
+  }, [tenantId]);
+
+  // Handle file upload
+  const handleUpload = useCallback(async () => {
+    if (!uploadFiles || uploadFiles.length === 0) return;
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      for (let i = 0; i < uploadFiles.length; i++) {
+        const file = uploadFiles[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('tenantId', tenantId);
+        formData.append('userId', user?.uid || '');
+        formData.append('userName', userProfile?.displayName || user?.displayName || 'Unknown');
+        formData.append('category', uploadCategory);
+        formData.append('description', uploadDescription);
+        formData.append('visibility', uploadVisibility);
+        formData.append('tags', uploadTags);
+
+        const response = await fetch('/api/documents/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || `Failed to upload ${file.name}`);
+        }
+      }
+
+      // Reset form and close dialog
+      setUploadFiles(null);
+      setUploadCategory('other');
+      setUploadDescription('');
+      setUploadTags('');
+      setUploadVisibility('internal');
+      setIsUploadOpen(false);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload documents');
+    } finally {
+      setUploading(false);
+    }
+  }, [uploadFiles, tenantId, user, userProfile, uploadCategory, uploadDescription, uploadVisibility, uploadTags]);
+
+  // Handle document delete
+  const handleDelete = useCallback(async (documentId: string) => {
+    try {
+      const response = await fetch(
+        `/api/documents/${documentId}?tenantId=${tenantId}&userId=${user?.uid}&userName=${encodeURIComponent(userProfile?.displayName || 'Unknown')}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete document');
+      }
+
+      setDeleteDocId(null);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete document');
+    }
+  }, [tenantId, user, userProfile]);
+
+  // Handle document download
+  const handleDownload = useCallback((doc: Document) => {
+    if (doc.downloadUrl) {
+      window.open(doc.downloadUrl, '_blank');
+    }
+  }, []);
 
   // Filter documents
-  const filteredDocuments = mockDocuments.filter((doc) => {
+  const filteredDocuments = documents.filter((doc) => {
     const matchesCategory = filterCategory === 'all' || doc.category === filterCategory;
     const matchesSearch =
       searchQuery === '' ||
       doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch && !doc.isArchived;
+      doc.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
   });
 
   // Group by category for stats
-  const documentsByCategory = mockDocuments.reduce(
+  const documentsByCategory = documents.reduce(
     (acc, doc) => {
-      if (!doc.isArchived) {
-        acc[doc.category] = (acc[doc.category] || 0) + 1;
-      }
+      acc[doc.category] = (acc[doc.category] || 0) + 1;
       return acc;
     },
     {} as Record<string, number>
   );
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-8">
+        <Card className="p-12 text-center">
+          <Loader2 className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-spin" />
+          <h3 className="text-lg font-semibold mb-2">Loading documents...</h3>
+          <p className="text-muted-foreground">Fetching your documents</p>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -221,72 +279,137 @@ export default function DocumentsPage() {
             Manage board packs, minutes, and company documents
           </p>
         </div>
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Document
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Upload Document</DialogTitle>
-              <DialogDescription>
-                Add a new document to your organization&apos;s repository
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Drag and drop your file here, or click to browse
-                </p>
-                <Button variant="outline" size="sm">
-                  Browse Files
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select defaultValue="board_pack">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(categoryLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Description (optional)</Label>
-                <Input placeholder="Brief description of the document" />
-              </div>
-              <div className="space-y-2">
-                <Label>Visibility</Label>
-                <Select defaultValue="internal">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="internal">Internal</SelectItem>
-                    <SelectItem value="confidential">Confidential</SelectItem>
-                    <SelectItem value="shared">Shared</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
-                Cancel
+        {canManageDocuments && (
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
               </Button>
-              <Button onClick={() => setIsUploadOpen(false)}>Upload</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Document</DialogTitle>
+                <DialogDescription>
+                  Add a new document to your organization&apos;s repository
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div
+                  className={cn(
+                    'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors',
+                    uploadFiles && 'border-primary bg-primary/5'
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => setUploadFiles(e.target.files)}
+                  />
+                  {uploadFiles ? (
+                    <div className="space-y-2">
+                      <Check className="h-8 w-8 mx-auto text-primary" />
+                      <p className="font-medium">{uploadFiles.length} file(s) selected</p>
+                      <p className="text-sm text-muted-foreground">
+                        {Array.from(uploadFiles).map((f) => f.name).join(', ')}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Drag and drop your file here, or click to browse
+                      </p>
+                      <Button variant="outline" size="sm" type="button">
+                        Browse Files
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={uploadCategory} onValueChange={(v: DocumentCategory) => setUploadCategory(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(categoryLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Description (optional)</Label>
+                  <Textarea
+                    placeholder="Brief description of the document"
+                    value={uploadDescription}
+                    onChange={(e) => setUploadDescription(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tags (optional)</Label>
+                  <Input
+                    placeholder="Comma-separated tags (e.g., Q3, Budget, Draft)"
+                    value={uploadTags}
+                    onChange={(e) => setUploadTags(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Visibility</Label>
+                  <Select value={uploadVisibility} onValueChange={(v: 'internal' | 'shared' | 'confidential') => setUploadVisibility(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="shared">Shared (visible to all members)</SelectItem>
+                      <SelectItem value="internal">Internal (board members only)</SelectItem>
+                      <SelectItem value="confidential">Confidential (restricted access)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setIsUploadOpen(false);
+                  setUploadFiles(null);
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpload} disabled={!uploadFiles || uploading}>
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              <span>{error}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setError(null)}>
+              Dismiss
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-6 mb-8">
@@ -416,10 +539,10 @@ export default function DocumentsPage() {
                     {doc.visibility === 'confidential' && (
                       <Badge variant="destructive">Confidential</Badge>
                     )}
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="View">
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} title="Download">
                       <Download className="h-4 w-4" />
                     </Button>
                     <DropdownMenu>
@@ -429,11 +552,11 @@ export default function DocumentsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Preview
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(doc)}>
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </DropdownMenuItem>
@@ -441,11 +564,18 @@ export default function DocumentsPage() {
                           <Calendar className="h-4 w-4 mr-2" />
                           Attach to Meeting
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canManageDocuments && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteDocId(doc.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -471,11 +601,20 @@ export default function DocumentsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Preview</DropdownMenuItem>
-                      <DropdownMenuItem>Download</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload(doc)}>Preview</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownload(doc)}>Download</DropdownMenuItem>
                       <DropdownMenuItem>Attach to Meeting</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                      {canManageDocuments && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeleteDocId(doc.id)}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -500,6 +639,27 @@ export default function DocumentsPage() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this document? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDocId && handleDelete(deleteDocId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

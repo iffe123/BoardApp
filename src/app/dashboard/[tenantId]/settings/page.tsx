@@ -44,7 +44,7 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
+  // Form state - Organization
   const [orgName, setOrgName] = useState('');
   const [orgNumber, setOrgNumber] = useState('');
   const [website, setWebsite] = useState('');
@@ -53,6 +53,24 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState('Europe/Stockholm');
   const [currency, setCurrency] = useState('SEK');
   const [fiscalYearStart, setFiscalYearStart] = useState('1');
+
+  // Meeting defaults
+  const [defaultMeetingDuration, setDefaultMeetingDuration] = useState('120');
+  const [defaultQuorum, setDefaultQuorum] = useState('3');
+  const [requireAdjuster, setRequireAdjuster] = useState(true);
+  const [autoGenerateMinutes, setAutoGenerateMinutes] = useState(true);
+
+  // Notifications
+  const [meetingReminderTiming, setMeetingReminderTiming] = useState('24,2');
+  const [agendaUpdatesEnabled, setAgendaUpdatesEnabled] = useState(true);
+  const [minutesReadyEnabled, setMinutesReadyEnabled] = useState(true);
+  const [newDocumentsEnabled, setNewDocumentsEnabled] = useState(true);
+  const [signatureRequestsEnabled, setSignatureRequestsEnabled] = useState(true);
+  const [taskAssignmentsEnabled, setTaskAssignmentsEnabled] = useState(true);
+  const [dueDateReminderDays, setDueDateReminderDays] = useState('3');
+
+  // Compliance
+  const [documentRetentionYears, setDocumentRetentionYears] = useState('7');
 
   // Load settings
   useEffect(() => {
@@ -67,6 +85,27 @@ export default function SettingsPage() {
       );
       setDefaultLanguage(currentTenant.settings?.defaultLanguage || 'sv-SE');
       setFiscalYearStart(String(currentTenant.settings?.fiscalYearStart || 1));
+
+      // Load meeting defaults from tenant settings
+      const settings = currentTenant.settings || {};
+      setAutoGenerateMinutes(settings.autoGenerateMinutes ?? true);
+      setRequireAdjuster(settings.requireBankIdSigning ?? true);
+      setDefaultMeetingDuration(String((settings as Record<string, unknown>).defaultMeetingDuration || 120));
+      setDefaultQuorum(String((settings as Record<string, unknown>).defaultQuorum || 3));
+
+      // Load notification settings
+      const notifications = (settings as Record<string, unknown>).notifications as Record<string, unknown> || {};
+      setMeetingReminderTiming(String(notifications.meetingReminderTiming || '24,2'));
+      setAgendaUpdatesEnabled(notifications.agendaUpdates !== false);
+      setMinutesReadyEnabled(notifications.minutesReady !== false);
+      setNewDocumentsEnabled(notifications.newDocuments !== false);
+      setSignatureRequestsEnabled(notifications.signatureRequests !== false);
+      setTaskAssignmentsEnabled(notifications.taskAssignments !== false);
+      setDueDateReminderDays(String(notifications.dueDateReminderDays || 3));
+
+      // Load compliance settings
+      const compliance = (settings as Record<string, unknown>).compliance as Record<string, unknown> || {};
+      setDocumentRetentionYears(String(compliance.documentRetentionYears || 7));
     }
   }, [currentTenant]);
 
@@ -100,6 +139,22 @@ export default function SettingsPage() {
             settings: {
               defaultLanguage,
               fiscalYearStart: parseInt(fiscalYearStart),
+              autoGenerateMinutes,
+              requireBankIdSigning: requireAdjuster,
+              defaultMeetingDuration: parseInt(defaultMeetingDuration),
+              defaultQuorum: parseInt(defaultQuorum),
+              notifications: {
+                meetingReminderTiming,
+                agendaUpdates: agendaUpdatesEnabled,
+                minutesReady: minutesReadyEnabled,
+                newDocuments: newDocumentsEnabled,
+                signatureRequests: signatureRequestsEnabled,
+                taskAssignments: taskAssignmentsEnabled,
+                dueDateReminderDays: parseInt(dueDateReminderDays),
+              },
+              compliance: {
+                documentRetentionYears: parseInt(documentRetentionYears),
+              },
             },
           },
         }),
@@ -124,7 +179,14 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [tenantId, user, userProfile, orgName, orgNumber, website, address, defaultLanguage, fiscalYearStart, setCurrentTenant]);
+  }, [
+    tenantId, user, userProfile, orgName, orgNumber, website, address,
+    defaultLanguage, fiscalYearStart, autoGenerateMinutes, requireAdjuster,
+    defaultMeetingDuration, defaultQuorum, meetingReminderTiming,
+    agendaUpdatesEnabled, minutesReadyEnabled, newDocumentsEnabled,
+    signatureRequestsEnabled, taskAssignmentsEnabled, dueDateReminderDays,
+    documentRetentionYears, setCurrentTenant
+  ]);
 
   if (!isAdmin) {
     return (
@@ -265,7 +327,7 @@ export default function SettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Default Meeting Duration</Label>
-                    <Select defaultValue="120">
+                    <Select value={defaultMeetingDuration} onValueChange={setDefaultMeetingDuration}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -279,7 +341,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Default Quorum</Label>
-                    <Select defaultValue="3">
+                    <Select value={defaultQuorum} onValueChange={setDefaultQuorum}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -300,9 +362,14 @@ export default function SettingsPage() {
                       Swedish compliance requirement (Justerare)
                     </p>
                   </div>
-                  <Badge variant="outline" className="bg-green-100 text-green-800">
-                    Enabled
-                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRequireAdjuster(!requireAdjuster)}
+                    className={requireAdjuster ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                  >
+                    {requireAdjuster ? 'Enabled' : 'Disabled'}
+                  </Button>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-lg border">
@@ -312,9 +379,14 @@ export default function SettingsPage() {
                       Use AI to generate draft minutes after meetings
                     </p>
                   </div>
-                  <Badge variant="outline" className="bg-green-100 text-green-800">
-                    Enabled
-                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutoGenerateMinutes(!autoGenerateMinutes)}
+                    className={autoGenerateMinutes ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                  >
+                    {autoGenerateMinutes ? 'Enabled' : 'Disabled'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -541,7 +613,7 @@ export default function SettingsPage() {
                         Send reminders before scheduled meetings
                       </p>
                     </div>
-                    <Select defaultValue="24,2">
+                    <Select value={meetingReminderTiming} onValueChange={setMeetingReminderTiming}>
                       <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
@@ -560,7 +632,14 @@ export default function SettingsPage() {
                         Notify when meeting agenda is modified
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800">Enabled</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAgendaUpdatesEnabled(!agendaUpdatesEnabled)}
+                      className={agendaUpdatesEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                    >
+                      {agendaUpdatesEnabled ? 'Enabled' : 'Disabled'}
+                    </Button>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -570,7 +649,14 @@ export default function SettingsPage() {
                         Notify when meeting minutes are available
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800">Enabled</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMinutesReadyEnabled(!minutesReadyEnabled)}
+                      className={minutesReadyEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                    >
+                      {minutesReadyEnabled ? 'Enabled' : 'Disabled'}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -585,7 +671,14 @@ export default function SettingsPage() {
                         Notify when new documents are uploaded
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800">Enabled</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewDocumentsEnabled(!newDocumentsEnabled)}
+                      className={newDocumentsEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                    >
+                      {newDocumentsEnabled ? 'Enabled' : 'Disabled'}
+                    </Button>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -595,7 +688,14 @@ export default function SettingsPage() {
                         Notify when signature is required
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800">Enabled</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSignatureRequestsEnabled(!signatureRequestsEnabled)}
+                      className={signatureRequestsEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                    >
+                      {signatureRequestsEnabled ? 'Enabled' : 'Disabled'}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -610,7 +710,14 @@ export default function SettingsPage() {
                         Notify when assigned a new action item
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800">Enabled</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTaskAssignmentsEnabled(!taskAssignmentsEnabled)}
+                      className={taskAssignmentsEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                    >
+                      {taskAssignmentsEnabled ? 'Enabled' : 'Disabled'}
+                    </Button>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -620,7 +727,7 @@ export default function SettingsPage() {
                         Remind about upcoming due dates
                       </p>
                     </div>
-                    <Select defaultValue="3">
+                    <Select value={dueDateReminderDays} onValueChange={setDueDateReminderDays}>
                       <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
@@ -633,6 +740,15 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {isSaving ? 'Saving...' : 'Save Notification Settings'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -714,7 +830,7 @@ export default function SettingsPage() {
                       Automatic deletion of documents after retention period
                     </p>
                   </div>
-                  <Select defaultValue="7">
+                  <Select value={documentRetentionYears} onValueChange={setDocumentRetentionYears}>
                     <SelectTrigger className="w-40">
                       <SelectValue />
                     </SelectTrigger>

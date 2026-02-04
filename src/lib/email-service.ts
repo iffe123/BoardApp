@@ -547,3 +547,302 @@ export async function sendBulkMeetingInvitations(
 
   return { sent, failed, errors };
 }
+
+// ============================================================================
+// ADDITIONAL EMAIL TYPES
+// ============================================================================
+
+export interface DocumentShareEmailData {
+  recipientName: string;
+  recipientEmail: string;
+  documentName: string;
+  sharedByName: string;
+  organizationName: string;
+  documentUrl: string;
+  description?: string;
+}
+
+export interface SignatureRequestEmailData {
+  recipientName: string;
+  recipientEmail: string;
+  documentTitle: string;
+  requestedByName: string;
+  signUrl: string;
+}
+
+export interface TaskReminderEmailData {
+  recipientName: string;
+  recipientEmail: string;
+  taskTitle: string;
+  dueDate: Date;
+  meetingTitle: string;
+  dashboardUrl: string;
+}
+
+export interface MinutesReadyEmailData {
+  recipientName: string;
+  recipientEmail: string;
+  meetingTitle: string;
+  meetingDate: Date;
+  minutesUrl: string;
+  organizationName: string;
+}
+
+// ============================================================================
+// ADDITIONAL EMAIL TEMPLATES
+// ============================================================================
+
+export function generateDocumentShareEmail(data: DocumentShareEmailData): { html: string; text: string } {
+  const content = `
+    <h2 style="margin-top: 0;">Document Shared with You</h2>
+    <p>Hello${data.recipientName ? ` ${data.recipientName}` : ''},</p>
+    <p><strong>${data.sharedByName}</strong> has shared a document with you from <strong>${data.organizationName}</strong>.</p>
+
+    <div class="details-box">
+      <div style="margin-bottom: 12px;">
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Document</div>
+        <div style="font-weight: 600;">${data.documentName}</div>
+      </div>
+      ${data.description ? `
+      <div>
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Description</div>
+        <div>${data.description}</div>
+      </div>
+      ` : ''}
+    </div>
+
+    <div style="text-align: center;">
+      <a href="${data.documentUrl}" class="button">View Document</a>
+    </div>
+  `;
+
+  const text = `
+Document Shared with You
+
+Hello${data.recipientName ? ` ${data.recipientName}` : ''},
+
+${data.sharedByName} has shared a document with you from ${data.organizationName}.
+
+Document: ${data.documentName}
+${data.description ? `Description: ${data.description}` : ''}
+
+View document: ${data.documentUrl}
+
+---
+GovernanceOS - AI-Native Board Governance Platform
+  `.trim();
+
+  return {
+    html: getBaseEmailTemplate(content),
+    text,
+  };
+}
+
+export function generateSignatureRequestEmail(data: SignatureRequestEmailData): { html: string; text: string } {
+  const content = `
+    <h2 style="margin-top: 0;">Signature Required</h2>
+    <p>Hello${data.recipientName ? ` ${data.recipientName}` : ''},</p>
+    <p><strong>${data.requestedByName}</strong> has requested your digital signature on:</p>
+
+    <div class="details-box">
+      <div>
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Document</div>
+        <div style="font-weight: 600;">${data.documentTitle}</div>
+      </div>
+    </div>
+
+    <p>Please sign the document using BankID.</p>
+
+    <div style="text-align: center;">
+      <a href="${data.signUrl}" class="button">Sign with BankID</a>
+    </div>
+
+    <p style="color: #64748b; font-size: 14px;">
+      This signature request uses BankID for secure digital signatures that are legally binding under Swedish law.
+    </p>
+  `;
+
+  const text = `
+Signature Required
+
+Hello${data.recipientName ? ` ${data.recipientName}` : ''},
+
+${data.requestedByName} has requested your digital signature on:
+
+Document: ${data.documentTitle}
+
+Please sign the document using BankID: ${data.signUrl}
+
+---
+GovernanceOS - AI-Native Board Governance Platform
+  `.trim();
+
+  return {
+    html: getBaseEmailTemplate(content),
+    text,
+  };
+}
+
+export function generateTaskReminderEmail(data: TaskReminderEmailData): { html: string; text: string } {
+  const formattedDate = data.dueDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const content = `
+    <h2 style="margin-top: 0; color: #f59e0b;">Task Due Soon</h2>
+    <p>Hello${data.recipientName ? ` ${data.recipientName}` : ''},</p>
+    <p>This is a reminder that you have a task due soon:</p>
+
+    <div class="details-box">
+      <div style="margin-bottom: 12px;">
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Task</div>
+        <div style="font-weight: 600;">${data.taskTitle}</div>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Due Date</div>
+        <div style="font-weight: 600; color: #f59e0b;">${formattedDate}</div>
+      </div>
+      <div>
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">From Meeting</div>
+        <div>${data.meetingTitle}</div>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <a href="${data.dashboardUrl}" class="button">View Task</a>
+    </div>
+  `;
+
+  const text = `
+Task Due Soon
+
+Hello${data.recipientName ? ` ${data.recipientName}` : ''},
+
+This is a reminder that you have a task due soon:
+
+Task: ${data.taskTitle}
+Due Date: ${formattedDate}
+From Meeting: ${data.meetingTitle}
+
+View task: ${data.dashboardUrl}
+
+---
+GovernanceOS - AI-Native Board Governance Platform
+  `.trim();
+
+  return {
+    html: getBaseEmailTemplate(content),
+    text,
+  };
+}
+
+export function generateMinutesReadyEmail(data: MinutesReadyEmailData): { html: string; text: string } {
+  const formattedDate = data.meetingDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const content = `
+    <h2 style="margin-top: 0;">Meeting Minutes Ready</h2>
+    <p>Hello${data.recipientName ? ` ${data.recipientName}` : ''},</p>
+    <p>The minutes from your recent board meeting are now available:</p>
+
+    <div class="details-box">
+      <div style="margin-bottom: 12px;">
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Meeting</div>
+        <div style="font-weight: 600;">${data.meetingTitle}</div>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Date</div>
+        <div>${formattedDate}</div>
+      </div>
+      <div>
+        <div style="color: #64748b; font-size: 12px; text-transform: uppercase;">Organization</div>
+        <div>${data.organizationName}</div>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <a href="${data.minutesUrl}" class="button">View Minutes</a>
+    </div>
+
+    <p style="color: #64748b; font-size: 14px;">
+      Please review the minutes. If you are an adjuster (justerare), you will need to sign the minutes using BankID.
+    </p>
+  `;
+
+  const text = `
+Meeting Minutes Ready
+
+Hello${data.recipientName ? ` ${data.recipientName}` : ''},
+
+The minutes from your recent board meeting are now available:
+
+Meeting: ${data.meetingTitle}
+Date: ${formattedDate}
+Organization: ${data.organizationName}
+
+View minutes: ${data.minutesUrl}
+
+---
+GovernanceOS - AI-Native Board Governance Platform
+  `.trim();
+
+  return {
+    html: getBaseEmailTemplate(content),
+    text,
+  };
+}
+
+// ============================================================================
+// ADDITIONAL HIGH-LEVEL EMAIL FUNCTIONS
+// ============================================================================
+
+export async function sendDocumentShareEmail(data: DocumentShareEmailData): Promise<EmailResult> {
+  const { html, text } = generateDocumentShareEmail(data);
+
+  return sendEmail({
+    to: { email: data.recipientEmail, name: data.recipientName },
+    subject: `Document Shared: ${data.documentName}`,
+    html,
+    text,
+  });
+}
+
+export async function sendSignatureRequestEmail(data: SignatureRequestEmailData): Promise<EmailResult> {
+  const { html, text } = generateSignatureRequestEmail(data);
+
+  return sendEmail({
+    to: { email: data.recipientEmail, name: data.recipientName },
+    subject: `Signature Required: ${data.documentTitle}`,
+    html,
+    text,
+  });
+}
+
+export async function sendTaskReminderEmail(data: TaskReminderEmailData): Promise<EmailResult> {
+  const { html, text } = generateTaskReminderEmail(data);
+
+  return sendEmail({
+    to: { email: data.recipientEmail, name: data.recipientName },
+    subject: `Task Due Soon: ${data.taskTitle}`,
+    html,
+    text,
+  });
+}
+
+export async function sendMinutesReadyEmail(data: MinutesReadyEmailData): Promise<EmailResult> {
+  const { html, text } = generateMinutesReadyEmail(data);
+
+  return sendEmail({
+    to: { email: data.recipientEmail, name: data.recipientName },
+    subject: `Meeting Minutes Ready: ${data.meetingTitle}`,
+    html,
+    text,
+  });
+}

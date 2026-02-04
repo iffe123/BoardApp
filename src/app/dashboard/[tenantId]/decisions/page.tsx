@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -15,6 +15,8 @@ import {
   Calendar,
   Users,
   ExternalLink,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,122 +32,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatDate } from '@/lib/utils';
 import type { Decision, DecisionOutcome } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
-
-// Mock decisions data
-const mockDecisions: Decision[] = [
-  {
-    id: '1',
-    tenantId: 'tenant1',
-    meetingId: '1',
-    agendaItemId: '5',
-    decisionNumber: 'D-2024-001',
-    title: 'Budget Approval 2025',
-    description: 'Approved the annual budget for fiscal year 2025 with total expenditure of 25 MSEK',
-    motion: 'To approve the proposed budget for fiscal year 2025 as presented by the CFO',
-    outcome: 'approved',
-    votingMethod: 'show_of_hands',
-    votesFor: 5,
-    votesAgainst: 0,
-    abstentions: 1,
-    participantIds: ['1', '2', '3', '4', '5', '6'],
-    recusedMemberIds: [],
-    actionItems: [
-      { id: '1', title: 'Implement Q1 budget allocations', assigneeName: 'CFO', status: 'in_progress', createdAt: Timestamp.now() },
-    ],
-    implementationDeadline: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
-    implementationStatus: 'in_progress',
-    relatedDocumentIds: ['doc3'],
-    relatedDecisionIds: [],
-    decidedAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    recordedBy: 'user2',
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-  },
-  {
-    id: '2',
-    tenantId: 'tenant1',
-    meetingId: '1',
-    agendaItemId: '6',
-    decisionNumber: 'D-2024-002',
-    title: 'TechCorp AB Acquisition',
-    description: 'Decision to proceed with due diligence for potential acquisition of TechCorp AB',
-    motion: 'To authorize management to conduct due diligence on TechCorp AB acquisition',
-    outcome: 'approved',
-    votingMethod: 'roll_call',
-    votesFor: 4,
-    votesAgainst: 0,
-    abstentions: 0,
-    participantIds: ['1', '2', '3', '5'],
-    recusedMemberIds: ['4'],
-    actionItems: [
-      { id: '2', title: 'Engage M&A advisors', assigneeName: 'CEO', status: 'completed', createdAt: Timestamp.now() },
-      { id: '3', title: 'Complete financial due diligence', assigneeName: 'CFO', status: 'in_progress', createdAt: Timestamp.now() },
-    ],
-    implementationDeadline: Timestamp.fromDate(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)),
-    implementationStatus: 'in_progress',
-    relatedDocumentIds: ['doc4'],
-    relatedDecisionIds: [],
-    decidedAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    recordedBy: 'user2',
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)),
-  },
-  {
-    id: '3',
-    tenantId: 'tenant1',
-    meetingId: '3',
-    agendaItemId: '3',
-    decisionNumber: 'D-2023-045',
-    title: 'Dividend Distribution',
-    description: 'Approved dividend distribution of 2 SEK per share for fiscal year 2023',
-    motion: 'To distribute dividends of 2 SEK per share to shareholders',
-    outcome: 'approved',
-    votingMethod: 'unanimous',
-    votesFor: 6,
-    votesAgainst: 0,
-    abstentions: 0,
-    participantIds: ['1', '2', '3', '4', '5', '6'],
-    recusedMemberIds: [],
-    actionItems: [
-      { id: '4', title: 'Process dividend payments', assigneeName: 'CFO', status: 'completed', createdAt: Timestamp.now(), completedAt: Timestamp.now() },
-    ],
-    implementationStatus: 'completed',
-    relatedDocumentIds: [],
-    relatedDecisionIds: [],
-    decidedAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    recordedBy: 'user2',
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)),
-  },
-  {
-    id: '4',
-    tenantId: 'tenant1',
-    meetingId: '3',
-    agendaItemId: '4',
-    decisionNumber: 'D-2023-044',
-    title: 'Office Relocation Proposal',
-    description: 'Proposal to relocate headquarters to new premises',
-    motion: 'To relocate the company headquarters to Kungsholmen by Q2 2024',
-    outcome: 'tabled',
-    votingMethod: 'show_of_hands',
-    votesFor: 2,
-    votesAgainst: 2,
-    abstentions: 2,
-    participantIds: ['1', '2', '3', '4', '5', '6'],
-    recusedMemberIds: [],
-    actionItems: [
-      { id: '5', title: 'Conduct cost-benefit analysis', assigneeName: 'COO', status: 'pending', createdAt: Timestamp.now() },
-    ],
-    implementationStatus: 'pending',
-    relatedDocumentIds: [],
-    relatedDecisionIds: [],
-    decidedAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    recordedBy: 'user2',
-    createdAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    updatedAt: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-  },
-];
+import {
+  db,
+  collections,
+  getDocs,
+  query,
+  orderBy,
+  onSnapshot,
+} from '@/lib/firebase';
 
 type FilterOutcome = 'all' | DecisionOutcome;
 
@@ -179,9 +73,70 @@ export default function DecisionsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOutcome, setFilterOutcome] = useState<FilterOutcome>('all');
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch decisions from Firestore with real-time updates
+  useEffect(() => {
+    if (!tenantId || !db) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const decisionsRef = collections.decisions(tenantId);
+    const decisionsQuery = query(decisionsRef, orderBy('decidedAt', 'desc'));
+
+    // Real-time listener for decisions
+    const unsubscribe = onSnapshot(
+      decisionsQuery,
+      (snapshot) => {
+        const fetchedDecisions: Decision[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Decision[];
+        setDecisions(fetchedDecisions);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error fetching decisions:', err);
+        setError('Failed to load decisions. Please try again.');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [tenantId]);
+
+  // Refresh decisions manually
+  const handleRefresh = async () => {
+    if (!tenantId || !db) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const decisionsRef = collections.decisions(tenantId);
+      const decisionsQuery = query(decisionsRef, orderBy('decidedAt', 'desc'));
+      const snapshot = await getDocs(decisionsQuery);
+      const fetchedDecisions: Decision[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Decision[];
+      setDecisions(fetchedDecisions);
+    } catch (err) {
+      console.error('Error refreshing decisions:', err);
+      setError('Failed to refresh decisions. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter decisions
-  const filteredDecisions = mockDecisions.filter((decision) => {
+  const filteredDecisions = decisions.filter((decision) => {
     const matchesOutcome = filterOutcome === 'all' || decision.outcome === filterOutcome;
     const matchesSearch =
       searchQuery === '' ||
@@ -192,7 +147,7 @@ export default function DecisionsPage() {
   });
 
   // Stats
-  const decisionsByOutcome = mockDecisions.reduce(
+  const decisionsByOutcome = decisions.reduce(
     (acc, d) => {
       acc[d.outcome] = (acc[d.outcome] || 0) + 1;
       return acc;
@@ -210,39 +165,63 @@ export default function DecisionsPage() {
             Track all board decisions and their implementation status
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              <span>{error}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-5 mb-8">
         <Card>
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Total Decisions</div>
-            <div className="text-2xl font-bold">{mockDecisions.length}</div>
+            <div className="text-2xl font-bold">{loading ? '-' : decisions.length}</div>
           </CardContent>
         </Card>
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4">
             <div className="text-sm text-green-700">Approved</div>
-            <div className="text-2xl font-bold text-green-800">{decisionsByOutcome['approved'] || 0}</div>
+            <div className="text-2xl font-bold text-green-800">{loading ? '-' : (decisionsByOutcome['approved'] || 0)}</div>
           </CardContent>
         </Card>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
             <div className="text-sm text-red-700">Rejected</div>
-            <div className="text-2xl font-bold text-red-800">{decisionsByOutcome['rejected'] || 0}</div>
+            <div className="text-2xl font-bold text-red-800">{loading ? '-' : (decisionsByOutcome['rejected'] || 0)}</div>
           </CardContent>
         </Card>
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="p-4">
             <div className="text-sm text-amber-700">Tabled</div>
-            <div className="text-2xl font-bold text-amber-800">{decisionsByOutcome['tabled'] || 0}</div>
+            <div className="text-2xl font-bold text-amber-800">{loading ? '-' : (decisionsByOutcome['tabled'] || 0)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">In Progress</div>
             <div className="text-2xl font-bold">
-              {mockDecisions.filter((d) => d.implementationStatus === 'in_progress').length}
+              {loading ? '-' : decisions.filter((d) => d.implementationStatus === 'in_progress').length}
             </div>
           </CardContent>
         </Card>
@@ -289,7 +268,16 @@ export default function DecisionsPage() {
 
       {/* Decisions List */}
       <div className="space-y-4">
-        {filteredDecisions.map((decision) => (
+        {/* Loading State */}
+        {loading && (
+          <Card className="p-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Loading decisions...</h3>
+            <p className="text-muted-foreground">Fetching data from the database</p>
+          </Card>
+        )}
+
+        {!loading && filteredDecisions.map((decision) => (
           <Card key={decision.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -373,7 +361,7 @@ export default function DecisionsPage() {
           </Card>
         ))}
 
-        {filteredDecisions.length === 0 && (
+        {!loading && filteredDecisions.length === 0 && (
           <Card className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No decisions found</h3>
