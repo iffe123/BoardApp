@@ -34,7 +34,7 @@ async function realBankIDCancel(orderRef: string): Promise<void> {
       'Content-Type': 'application/json',
     },
     body,
-    // @ts-ignore - agent for https
+    // @ts-expect-error - agent for https
     agent,
   });
 

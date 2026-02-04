@@ -6,6 +6,9 @@ import {
 } from '@/lib/fortnox-service';
 import { createAuditLog } from '@/lib/audit-service';
 
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 // GET /api/integrations/fortnox/callback - Handle OAuth callback
 export async function GET(request: NextRequest) {
   try {

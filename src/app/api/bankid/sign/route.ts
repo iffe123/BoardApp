@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
-import { addDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { addDoc } from 'firebase/firestore';
 import { createAuditLog } from '@/lib/audit-service';
 import crypto from 'crypto';
 
@@ -9,10 +9,7 @@ const BANKID_API_URL = process.env.BANKID_API_URL || 'https://appapi2.test.banki
 const USE_MOCK = process.env.BANKID_USE_MOCK === 'true' || !process.env.BANKID_PFX_PATH;
 
 // Mock BankID implementation for development
-async function mockBankIDSign(
-  personalNumber: string,
-  userVisibleData: string
-): Promise<{ orderRef: string; autoStartToken: string }> {
+async function mockBankIDSign(): Promise<{ orderRef: string; autoStartToken: string }> {
   // Generate mock order reference and auto-start token
   const orderRef = `mock-${crypto.randomUUID()}`;
   const autoStartToken = crypto.randomUUID();
@@ -64,7 +61,7 @@ async function realBankIDSign(
       'Content-Type': 'application/json',
     },
     body,
-    // @ts-ignore - agent for https
+    // @ts-expect-error - agent for https
     agent,
   });
 
@@ -104,7 +101,7 @@ export async function POST(request: NextRequest) {
     let signResult;
 
     if (USE_MOCK) {
-      signResult = await mockBankIDSign(personalNumber, userVisibleData);
+      signResult = await mockBankIDSign();
     } else {
       signResult = await realBankIDSign(personalNumber, userVisibleData, endUserIp);
     }

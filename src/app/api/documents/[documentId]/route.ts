@@ -109,9 +109,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({
       success: true,
       document: {
-        id: documentId,
         ...currentDoc,
         ...finalUpdates,
+        id: documentId,
       },
     });
   } catch (error) {

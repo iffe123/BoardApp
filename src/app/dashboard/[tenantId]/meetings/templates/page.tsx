@@ -6,12 +6,8 @@ import {
   FileText,
   Plus,
   Clock,
-  Calendar,
-  ChevronRight,
-  GripVertical,
   Trash2,
   Copy,
-  Edit,
   Check,
   Loader2,
   AlertTriangle,
@@ -48,20 +44,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { collections, onSnapshot, query, orderBy, db, Timestamp } from '@/lib/firebase';
-import { addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, deleteDoc, Timestamp as FirestoreTimestamp } from 'firebase/firestore';
 import {
   STANDARD_AGENDA_ITEMS,
-  MEETING_TEMPLATES,
+  DEFAULT_TEMPLATES,
   type StandardAgendaItem,
 } from '@/lib/meeting-templates';
-import type { MeetingTemplate, AgendaItemType, MeetingType } from '@/types/schema';
+import type { MeetingTemplate, AgendaItemType } from '@/types/schema';
+
+type MeetingType = 'ordinary' | 'extraordinary' | 'annual_general' | 'statutory';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   ordinary: 'Ordinary Board Meeting',
   extraordinary: 'Extraordinary Board Meeting',
   annual_general: 'Annual General Meeting',
   statutory: 'Statutory Meeting',
-  committee: 'Committee Meeting',
 };
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -84,15 +81,15 @@ interface CustomTemplate extends MeetingTemplate {
   id: string;
   tenantId: string;
   isCustom: true;
-  createdAt: typeof Timestamp;
-  updatedAt: typeof Timestamp;
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
   createdBy: string;
 }
 
 export default function MeetingTemplatesPage() {
   const params = useParams();
   const tenantId = params.tenantId as string;
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const { canManageMeetings } = usePermissions();
 
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
@@ -102,7 +99,6 @@ export default function MeetingTemplatesPage() {
 
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | null>(null);
   const [saving, setSaving] = useState(false);
 
   // New template form
@@ -200,19 +196,19 @@ export default function MeetingTemplatesPage() {
   }, [tenantId]);
 
   // Duplicate built-in template as custom
-  const handleDuplicateBuiltIn = useCallback((template: typeof MEETING_TEMPLATES[0]) => {
+  const handleDuplicateBuiltIn = useCallback((template: typeof DEFAULT_TEMPLATES[0]) => {
     setTemplateName(`${template.name} (Copy)`);
     setTemplateDescription(template.description || '');
     setTemplateMeetingType(template.meetingType as MeetingType);
     setTemplateItems(
-      template.items.map((item) => {
-        const standardItem = STANDARD_AGENDA_ITEMS.find((si) => si.id === item.standardItemId);
+      template.itemIds.map((itemId) => {
+        const standardItem = STANDARD_AGENDA_ITEMS.find((si) => si.id === itemId);
         return standardItem || {
-          id: item.standardItemId,
-          title: item.customTitle || 'Unknown Item',
-          titleSv: item.customTitle || 'Unknown Item',
+          id: itemId,
+          title: 'Unknown Item',
+          titleSv: 'Unknown Item',
           type: 'information' as AgendaItemType,
-          estimatedDuration: item.customDuration || 10,
+          estimatedDuration: 10,
           category: 'custom' as const,
           isRequired: false,
           requiredFor: [],
@@ -289,7 +285,7 @@ export default function MeetingTemplatesPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="builtin">
             <LayoutTemplate className="h-4 w-4 mr-2" />
-            Built-in Templates ({MEETING_TEMPLATES.length})
+            Built-in Templates ({DEFAULT_TEMPLATES.length})
           </TabsTrigger>
           <TabsTrigger value="custom">
             <FileText className="h-4 w-4 mr-2" />
@@ -300,7 +296,7 @@ export default function MeetingTemplatesPage() {
         {/* Built-in Templates */}
         <TabsContent value="builtin">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {MEETING_TEMPLATES.map((template) => (
+            {DEFAULT_TEMPLATES.map((template) => (
               <Card key={template.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -319,35 +315,35 @@ export default function MeetingTemplatesPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                     <div className="flex items-center gap-1">
                       <FileText className="h-4 w-4" />
-                      {template.items.length} items
+                      {template.itemIds.length} items
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      {template.estimatedDuration} min
+                      {template.defaultDuration} min
                     </div>
                   </div>
 
                   {/* Preview items */}
                   <div className="space-y-1 mb-4">
-                    {template.items.slice(0, 4).map((item, index) => {
+                    {template.itemIds.slice(0, 4).map((itemId, index) => {
                       const standardItem = STANDARD_AGENDA_ITEMS.find(
-                        (si) => si.id === item.standardItemId
+                        (si) => si.id === itemId
                       );
                       return (
                         <div
-                          key={item.standardItemId}
+                          key={itemId}
                           className="flex items-center gap-2 text-sm"
                         >
                           <span className="text-muted-foreground">{index + 1}.</span>
                           <span className="truncate">
-                            {item.customTitle || standardItem?.title || 'Unknown'}
+                            {standardItem?.title || 'Unknown'}
                           </span>
                         </div>
                       );
                     })}
-                    {template.items.length > 4 && (
+                    {template.itemIds.length > 4 && (
                       <p className="text-sm text-muted-foreground">
-                        +{template.items.length - 4} more items
+                        +{template.itemIds.length - 4} more items
                       </p>
                     )}
                   </div>
@@ -402,11 +398,11 @@ export default function MeetingTemplatesPage() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-1">
                         <FileText className="h-4 w-4" />
-                        {template.items?.length || 0} items
+                        {template.agendaItems?.length || 0} items
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {template.estimatedDuration} min
+                        {template.defaultDuration} min
                       </div>
                     </div>
 

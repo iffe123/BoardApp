@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp, db } from '@/lib/firebase';
 import { getDocs, addDoc, query, orderBy, where, getDoc } from 'firebase/firestore';
-import type { Decision, Meeting, AgendaItem } from '@/types/schema';
+import type { Decision, Meeting } from '@/types/schema';
 import { createAuditLog } from '@/lib/audit-service';
 
 // GET /api/decisions - List decisions for a tenant
@@ -184,8 +184,8 @@ export async function extractDecisionsFromMeeting(
   const decisions: Decision[] = [];
 
   // Find all decision-type agenda items
-  for (const item of meeting.agenda || []) {
-    if (item.type === 'decision' && item.outcome) {
+  for (const item of meeting.agendaItems || []) {
+    if (item.type === 'decision' && item.decision?.outcome) {
       // Check if decision already exists
       const existingDecisionsQuery = query(
         collections.decisions(tenantId),
@@ -208,17 +208,17 @@ export async function extractDecisionsFromMeeting(
           decisionNumber,
           title: item.title,
           description: item.description || '',
-          motion: item.motion || '',
-          outcome: item.outcome as Decision['outcome'],
-          votingMethod: item.votingMethod || 'show_of_hands',
-          votesFor: item.votesFor || 0,
-          votesAgainst: item.votesAgainst || 0,
-          abstentions: item.abstentions || 0,
-          participantIds: item.votingResults?.map(v => v.memberId) || [],
-          recusedMemberIds: item.recusals?.map(r => r.memberId) || [],
+          motion: item.decision.motion || '',
+          outcome: item.decision.outcome,
+          votingMethod: item.decision.votingMethod || 'show_of_hands',
+          votesFor: item.decision.votesFor || 0,
+          votesAgainst: item.decision.votesAgainst || 0,
+          abstentions: item.decision.abstentions || 0,
+          participantIds: [],
+          recusedMemberIds: item.recusedMemberIds || [],
           actionItems: item.actionItems || [],
           implementationStatus: 'pending',
-          relatedDocumentIds: item.attachmentIds || [],
+          relatedDocumentIds: item.documentIds || [],
           relatedDecisionIds: [],
           decidedAt: Timestamp.now(),
           recordedBy: userId,
@@ -239,7 +239,7 @@ export async function extractDecisionsFromMeeting(
           metadata: {
             decisionNumber,
             title: item.title,
-            outcome: item.outcome,
+            outcome: item.decision.outcome,
             meetingId,
             extractedAutomatically: true,
           },

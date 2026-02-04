@@ -88,7 +88,7 @@ async function realBankIDCollect(orderRef: string): Promise<BankIDCollectRespons
       'Content-Type': 'application/json',
     },
     body,
-    // @ts-ignore - agent for https
+    // @ts-expect-error - agent for https
     agent,
   });
 

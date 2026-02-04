@@ -6,8 +6,8 @@
  */
 
 import { collections, Timestamp, db } from '@/lib/firebase';
-import { getDoc, updateDoc, addDoc } from 'firebase/firestore';
-import type { Tenant, FinancialPeriod, ERPConnection } from '@/types/schema';
+import { updateDoc, addDoc, getDocs, query, where } from 'firebase/firestore';
+import type { FinancialPeriod, ERPConnection } from '@/types/schema';
 
 // Fortnox API configuration
 const FORTNOX_AUTH_URL = 'https://apps.fortnox.se/oauth-v1/auth';
@@ -148,24 +148,26 @@ export async function storeFortnoxConnection(
 ): Promise<void> {
   if (!db) throw new Error('Database not initialized');
 
-  const tenantRef = collections.tenant(tenantId);
-  const tenantSnap = await getDoc(tenantRef);
+  // Check if an existing Fortnox connection exists
+  const connectionsRef = collections.erpConnections(tenantId);
+  const existingQuery = query(connectionsRef, where('provider', '==', 'fortnox'));
+  const existingSnap = await getDocs(existingQuery);
 
-  if (!tenantSnap.exists()) {
-    throw new Error('Tenant not found');
-  }
-
-  const erpConnection: ERPConnection = {
+  const erpConnection: Omit<ERPConnection, 'id'> = {
+    tenantId,
     provider: 'fortnox',
-    isConnected: true,
-    connectionDate: Timestamp.now(),
-    lastSyncDate: Timestamp.now(),
-    credentials: {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresAt: Timestamp.fromDate(tokens.expiresAt),
-    },
-    metadata: companyInfo
+    status: 'active',
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    tokenExpiresAt: Timestamp.fromDate(tokens.expiresAt),
+    syncEnabled: true,
+    syncFrequency: 'daily',
+    lastSyncAt: Timestamp.now(),
+    lastSyncStatus: 'success',
+    connectedAt: Timestamp.now(),
+    connectedBy: 'system',
+    updatedAt: Timestamp.now(),
+    accountMapping: companyInfo
       ? {
           companyName: companyInfo.companyName,
           organizationNumber: companyInfo.organizationNumber,
@@ -173,10 +175,17 @@ export async function storeFortnoxConnection(
       : undefined,
   };
 
-  await updateDoc(tenantRef, {
-    erpConnection,
-    updatedAt: Timestamp.now(),
-  });
+  if (!existingSnap.empty) {
+    // Update existing connection
+    const existingDoc = existingSnap.docs[0];
+    await updateDoc(existingDoc.ref, {
+      ...erpConnection,
+      connectedAt: existingDoc.data().connectedAt || Timestamp.now(),
+    });
+  } else {
+    // Create new connection
+    await addDoc(connectionsRef, erpConnection);
+  }
 }
 
 /**
@@ -185,12 +194,19 @@ export async function storeFortnoxConnection(
 export async function disconnectFortnox(tenantId: string): Promise<void> {
   if (!db) throw new Error('Database not initialized');
 
-  const tenantRef = collections.tenant(tenantId);
+  const connectionsRef = collections.erpConnections(tenantId);
+  const existingQuery = query(connectionsRef, where('provider', '==', 'fortnox'));
+  const existingSnap = await getDocs(existingQuery);
 
-  await updateDoc(tenantRef, {
-    erpConnection: null,
-    updatedAt: Timestamp.now(),
-  });
+  if (!existingSnap.empty) {
+    const connectionDoc = existingSnap.docs[0];
+    await updateDoc(connectionDoc.ref, {
+      status: 'disconnected',
+      accessToken: null,
+      refreshToken: null,
+      updatedAt: Timestamp.now(),
+    });
+  }
 }
 
 /**
@@ -199,30 +215,32 @@ export async function disconnectFortnox(tenantId: string): Promise<void> {
 export async function getValidAccessToken(tenantId: string): Promise<string> {
   if (!db) throw new Error('Database not initialized');
 
-  const tenantRef = collections.tenant(tenantId);
-  const tenantSnap = await getDoc(tenantRef);
+  // Find the Fortnox connection in the erpConnections subcollection
+  const connectionsRef = collections.erpConnections(tenantId);
+  const connectionsQuery = query(connectionsRef, where('provider', '==', 'fortnox'), where('status', '==', 'active'));
+  const connectionsSnap = await getDocs(connectionsQuery);
 
-  if (!tenantSnap.exists()) {
-    throw new Error('Tenant not found');
-  }
-
-  const tenant = tenantSnap.data() as Tenant;
-
-  if (!tenant.erpConnection || tenant.erpConnection.provider !== 'fortnox') {
+  if (connectionsSnap.empty) {
     throw new Error('Fortnox not connected');
   }
 
-  const credentials = tenant.erpConnection.credentials;
-  const expiresAt = credentials.expiresAt.toDate();
+  const connectionDoc = connectionsSnap.docs[0];
+  const connection = connectionDoc.data() as ERPConnection;
+
+  if (!connection.accessToken || !connection.refreshToken) {
+    throw new Error('Invalid Fortnox connection credentials');
+  }
+
+  const expiresAt = connection.tokenExpiresAt?.toDate() || new Date(0);
 
   // Check if token needs refresh (5 minute buffer)
   if (expiresAt.getTime() - Date.now() < 5 * 60 * 1000) {
-    const newTokens = await refreshFortnoxToken(credentials.refreshToken);
+    const newTokens = await refreshFortnoxToken(connection.refreshToken);
     await storeFortnoxConnection(tenantId, newTokens);
     return newTokens.accessToken;
   }
 
-  return credentials.accessToken;
+  return connection.accessToken;
 }
 
 // ============================================================================
@@ -297,13 +315,7 @@ export async function getFortnoxFinancials(
   const toDate = new Date(year, month, 0).toISOString().split('T')[0];
 
   // Fetch income statement (profit & loss)
-  const financialYearData = await fortnoxRequest<{
-    FinancialYears: Array<{
-      Id: number;
-      FromDate: string;
-      ToDate: string;
-    }>;
-  }>(tenantId, '/financialyears');
+  // Note: Financial year data endpoint available at /financialyears if needed
 
   // Get SIE export for detailed data
   // For simplicity, we'll use account balances endpoint
@@ -376,36 +388,80 @@ export async function syncFortnoxFinancials(
       // Create or update financial period in Firestore
       const periodData: Omit<FinancialPeriod, 'id'> = {
         tenantId,
-        year,
-        month,
-        status: 'final',
-        revenue: financialData.revenue,
-        cogs: 0, // Would need more detailed account mapping
-        grossProfit: financialData.revenue,
-        operatingExpenses: financialData.costs,
-        ebitda: financialData.profit,
-        ebit: financialData.profit,
-        netIncome: financialData.profit,
-        assets: financialData.assets,
-        liabilities: financialData.liabilities,
-        equity: financialData.equity,
-        cashFlow: 0, // Would need cash flow statement data
-        budgetComparison: {},
-        previousYearComparison: {},
+        period: `${year}-${String(month).padStart(2, '0')}`,
+        periodType: 'monthly',
+        fiscalYear: year,
+        incomeStatement: {
+          revenue: financialData.revenue,
+          costOfGoodsSold: 0, // Would need more detailed account mapping
+          grossProfit: financialData.revenue,
+          operatingExpenses: financialData.costs,
+          operatingIncome: financialData.profit,
+          interestExpense: 0,
+          interestIncome: 0,
+          otherIncome: 0,
+          otherExpenses: 0,
+          taxExpense: 0,
+          netIncome: financialData.profit,
+        },
+        balanceSheet: {
+          cashAndEquivalents: 0,
+          accountsReceivable: 0,
+          inventory: 0,
+          prepaidExpenses: 0,
+          otherCurrentAssets: 0,
+          totalCurrentAssets: financialData.assets * 0.5, // Estimate
+          propertyPlantEquipment: 0,
+          intangibleAssets: 0,
+          longTermInvestments: 0,
+          otherNonCurrentAssets: 0,
+          totalNonCurrentAssets: financialData.assets * 0.5, // Estimate
+          totalAssets: financialData.assets,
+          accountsPayable: 0,
+          shortTermDebt: 0,
+          accruedLiabilities: 0,
+          otherCurrentLiabilities: 0,
+          totalCurrentLiabilities: financialData.liabilities * 0.5, // Estimate
+          longTermDebt: 0,
+          deferredTaxLiabilities: 0,
+          otherNonCurrentLiabilities: 0,
+          totalNonCurrentLiabilities: financialData.liabilities * 0.5, // Estimate
+          totalLiabilities: financialData.liabilities,
+          commonStock: 0,
+          retainedEarnings: financialData.equity,
+          otherEquity: 0,
+          totalEquity: financialData.equity,
+        },
+        cashFlow: {
+          operatingCashFlow: 0,
+          investingCashFlow: 0,
+          financingCashFlow: 0,
+          netCashFlow: 0,
+          beginningCash: 0,
+          endingCash: 0,
+        },
         kpis: {
           grossMargin: financialData.revenue ? (financialData.profit / financialData.revenue) * 100 : 0,
           operatingMargin: financialData.revenue ? (financialData.profit / financialData.revenue) * 100 : 0,
           netMargin: financialData.revenue ? (financialData.profit / financialData.revenue) * 100 : 0,
+          ebitda: financialData.profit,
+          ebitdaMargin: financialData.revenue ? (financialData.profit / financialData.revenue) * 100 : 0,
           currentRatio: financialData.liabilities ? financialData.assets / financialData.liabilities : 0,
           quickRatio: financialData.liabilities ? financialData.assets / financialData.liabilities : 0,
           debtToEquity: financialData.equity ? financialData.liabilities / financialData.equity : 0,
           returnOnAssets: financialData.assets ? (financialData.profit / financialData.assets) * 100 : 0,
           returnOnEquity: financialData.equity ? (financialData.profit / financialData.equity) * 100 : 0,
+          workingCapital: financialData.assets - financialData.liabilities,
         },
-        importedFrom: 'fortnox',
-        importedAt: Timestamp.now(),
+        source: 'fortnox',
+        sourceMetadata: {
+          importedAt: Timestamp.now(),
+          importedBy: 'system',
+        },
+        status: 'final',
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
+        createdBy: 'system',
       };
 
       await addDoc(collections.financials(tenantId), periodData);
@@ -415,17 +471,18 @@ export async function syncFortnoxFinancials(
     }
   }
 
-  // Update last sync date
-  const tenantRef = collections.tenant(tenantId);
-  const tenantSnap = await getDoc(tenantRef);
+  // Update last sync date in the ERP connection
+  const connectionsRef = collections.erpConnections(tenantId);
+  const connectionsQuery = query(connectionsRef, where('provider', '==', 'fortnox'), where('status', '==', 'active'));
+  const connectionsSnap = await getDocs(connectionsQuery);
 
-  if (tenantSnap.exists()) {
-    const tenant = tenantSnap.data() as Tenant;
-    if (tenant.erpConnection) {
-      await updateDoc(tenantRef, {
-        'erpConnection.lastSyncDate': Timestamp.now(),
-      });
-    }
+  if (!connectionsSnap.empty) {
+    const connectionDoc = connectionsSnap.docs[0];
+    await updateDoc(connectionDoc.ref, {
+      lastSyncAt: Timestamp.now(),
+      lastSyncStatus: errors.length > 0 ? 'partial' : 'success',
+      updatedAt: Timestamp.now(),
+    });
   }
 
   return { synced, errors };

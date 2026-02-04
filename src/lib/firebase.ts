@@ -197,6 +197,8 @@ export const collections = {
   auditLogs: (tenantId: string) => collection(db, 'tenants', tenantId, 'audit_logs'),
   signatureAudits: (tenantId: string) => collection(db, 'tenants', tenantId, 'signature_audits'),
   notifications: (tenantId: string) => collection(db, 'tenants', tenantId, 'notifications'),
+  signatures: (tenantId: string) => collection(db, 'tenants', tenantId, 'signatures'),
+  signature: (tenantId: string, signatureId: string) => doc(db, 'tenants', tenantId, 'signatures', signatureId),
 
   systemTemplates: () => collection(db, 'system_templates'),
   clientManagers: () => collection(db, 'client_managers'),

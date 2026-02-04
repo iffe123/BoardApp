@@ -7,7 +7,6 @@ import {
   CheckCircle,
   XCircle,
   Smartphone,
-  QrCode,
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react';
