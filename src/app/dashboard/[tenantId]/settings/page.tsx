@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Building2,
-  Globe,
   CreditCard,
   Shield,
   Link2,
@@ -12,6 +11,7 @@ import {
   Save,
   ExternalLink,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,22 +36,95 @@ import { useAuth, usePermissions } from '@/contexts/auth-context';
 
 export default function SettingsPage() {
   const params = useParams();
-  void params.tenantId; // Used for routing
-  const { currentTenant } = useAuth();
+  const tenantId = params.tenantId as string;
+  const { currentTenant, user, userProfile, setCurrentTenant } = useAuth();
   const { isAdmin, isOwner } = usePermissions();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Form state
-  const [orgName, setOrgName] = useState(currentTenant?.name || '');
-  const [orgNumber, setOrgNumber] = useState(currentTenant?.organizationNumber || '');
+  const [orgName, setOrgName] = useState('');
+  const [orgNumber, setOrgNumber] = useState('');
+  const [website, setWebsite] = useState('');
+  const [address, setAddress] = useState('');
+  const [defaultLanguage, setDefaultLanguage] = useState('sv-SE');
+  const [timezone, setTimezone] = useState('Europe/Stockholm');
+  const [currency, setCurrency] = useState('SEK');
+  const [fiscalYearStart, setFiscalYearStart] = useState('1');
 
-  const handleSave = async () => {
+  // Load settings
+  useEffect(() => {
+    if (currentTenant) {
+      setOrgName(currentTenant.name || '');
+      setOrgNumber(currentTenant.organizationNumber || '');
+      setWebsite(currentTenant.website || '');
+      setAddress(
+        currentTenant.address
+          ? `${currentTenant.address.street}\n${currentTenant.address.city}, ${currentTenant.address.postalCode}\n${currentTenant.address.country}`
+          : ''
+      );
+      setDefaultLanguage(currentTenant.settings?.defaultLanguage || 'sv-SE');
+      setFiscalYearStart(String(currentTenant.settings?.fiscalYearStart || 1));
+    }
+  }, [currentTenant]);
+
+  const handleSave = useCallback(async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSaving(false);
-  };
+    setError(null);
+    setSaveSuccess(false);
+
+    try {
+      // Parse address
+      const addressLines = address.split('\n').map(line => line.trim());
+      const parsedAddress = addressLines.length >= 2 ? {
+        street: addressLines[0] || '',
+        city: addressLines[1]?.split(',')[0]?.trim() || '',
+        postalCode: addressLines[1]?.split(',')[1]?.trim() || '',
+        country: addressLines[2] || 'Sweden',
+      } : undefined;
+
+      const response = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          userId: user?.uid,
+          userName: userProfile?.displayName || user?.displayName || 'Unknown',
+          updates: {
+            name: orgName,
+            organizationNumber: orgNumber,
+            website,
+            address: parsedAddress,
+            settings: {
+              defaultLanguage,
+              fiscalYearStart: parseInt(fiscalYearStart),
+            },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save settings');
+      }
+
+      setSaveSuccess(true);
+
+      // Refresh tenant data by re-setting current tenant
+      if (tenantId) {
+        await setCurrentTenant(tenantId);
+      }
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [tenantId, user, userProfile, orgName, orgNumber, website, address, defaultLanguage, fiscalYearStart, setCurrentTenant]);
 
   if (!isAdmin) {
     return (
@@ -141,7 +214,8 @@ export default function SettingsPage() {
                     id="website"
                     type="url"
                     placeholder="https://example.com"
-                    leftIcon={<Globe className="h-4 w-4" />}
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
                   />
                 </div>
 
@@ -151,12 +225,31 @@ export default function SettingsPage() {
                     id="address"
                     placeholder="Street Address&#10;City, Postal Code&#10;Country"
                     rows={3}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                   />
                 </div>
 
-                <Button onClick={handleSave} isLoading={isSaving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                {error && (
+                  <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {saveSuccess && (
+                  <div className="p-3 rounded-md bg-green-100 text-green-800 text-sm flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    Settings saved successfully
+                  </div>
+                )}
+
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
@@ -237,7 +330,7 @@ export default function SettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Language</Label>
-                    <Select defaultValue="sv-SE">
+                    <Select value={defaultLanguage} onValueChange={setDefaultLanguage}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -250,7 +343,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Timezone</Label>
-                    <Select defaultValue="Europe/Stockholm">
+                    <Select value={timezone} onValueChange={setTimezone}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -266,7 +359,7 @@ export default function SettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Currency</Label>
-                    <Select defaultValue="SEK">
+                    <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -279,7 +372,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Fiscal Year Start</Label>
-                    <Select defaultValue="1">
+                    <Select value={fiscalYearStart} onValueChange={setFiscalYearStart}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

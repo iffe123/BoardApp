@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { createAuditLog, AuditActions, getRequestMetadata } from '@/lib/audit-service';
 import type { Meeting } from '@/types/schema';
 
 // GET /api/meetings - List meetings for a tenant
@@ -174,6 +175,29 @@ export async function POST(request: NextRequest) {
     };
 
     const docRef = await addDoc(collections.meetings(tenantId), meeting);
+
+    // Create audit log entry
+    try {
+      const { actorIp, actorUserAgent } = getRequestMetadata(request);
+      await createAuditLog({
+        tenantId,
+        action: AuditActions.MEETING_CREATED,
+        resourceType: 'meeting',
+        resourceId: docRef.id,
+        actorId: createdBy || 'system',
+        actorName: 'System', // In real app, fetch user name
+        actorIp,
+        actorUserAgent,
+        metadata: {
+          title,
+          meetingType: meetingType || 'ordinary',
+          scheduledStart,
+        },
+      });
+    } catch (auditError) {
+      // Log but don't fail the request if audit logging fails
+      console.error('Failed to create audit log:', auditError);
+    }
 
     return NextResponse.json({
       id: docRef.id,
