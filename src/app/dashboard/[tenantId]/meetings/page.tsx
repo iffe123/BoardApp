@@ -11,6 +11,7 @@ import {
   LayoutGrid,
   List,
   ChevronDown,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { MeetingCard } from '@/components/meetings/meeting-card';
+import { MeetingCalendar } from '@/components/meetings/meeting-calendar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Meeting, MeetingStatus } from '@/types/schema';
@@ -133,7 +135,7 @@ const mockMeetings: Meeting[] = [
   },
 ];
 
-type ViewMode = 'grid' | 'list';
+type ViewMode = 'grid' | 'list' | 'calendar';
 type FilterStatus = 'all' | MeetingStatus;
 
 export default function MeetingsPage() {
@@ -268,6 +270,7 @@ export default function MeetingsPage() {
               size="icon"
               onClick={() => setViewMode('grid')}
               className="rounded-r-none"
+              title="Grid view"
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -275,9 +278,19 @@ export default function MeetingsPage() {
               variant={viewMode === 'list' ? 'secondary' : 'ghost'}
               size="icon"
               onClick={() => setViewMode('list')}
-              className="rounded-l-none"
+              className="rounded-none border-l"
+              title="List view"
             >
               <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('calendar')}
+              className="rounded-l-none border-l"
+              title="Calendar view"
+            >
+              <CalendarDays className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -302,8 +315,8 @@ export default function MeetingsPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!isLoading && filteredMeetings.length === 0 && (
+      {/* Empty State (only for grid/list view) */}
+      {!isLoading && viewMode !== 'calendar' && filteredMeetings.length === 0 && (
         <Card className="p-12 text-center">
           <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No meetings found</h3>
@@ -323,8 +336,13 @@ export default function MeetingsPage() {
         </Card>
       )}
 
-      {/* Meeting Lists */}
-      {!isLoading && filteredMeetings.length > 0 && (
+      {/* Calendar View */}
+      {!isLoading && viewMode === 'calendar' && (
+        <MeetingCalendar meetings={mockMeetings} tenantId={tenantId} />
+      )}
+
+      {/* Meeting Lists (Grid/List View) */}
+      {!isLoading && viewMode !== 'calendar' && filteredMeetings.length > 0 && (
         <div className="space-y-8">
           {/* Upcoming Meetings */}
           {upcomingMeetings.length > 0 && (

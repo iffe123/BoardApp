@@ -24,6 +24,8 @@ import {
   Bell,
   HelpCircle,
   Briefcase,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
 import type { Tenant } from '@/types/schema';
 
 // ============================================================================
@@ -249,6 +252,36 @@ function UserMenu() {
 }
 
 // ============================================================================
+// THEME TOGGLE
+// ============================================================================
+
+function ThemeToggle() {
+  const { resolvedTheme, toggleTheme } = useTheme();
+
+  return (
+    <div className="border-t p-2">
+      <Button
+        variant="ghost"
+        className="w-full justify-start gap-3 px-3"
+        onClick={toggleTheme}
+      >
+        {resolvedTheme === 'dark' ? (
+          <>
+            <Sun className="h-5 w-5" />
+            <span>Light Mode</span>
+          </>
+        ) : (
+          <>
+            <Moon className="h-5 w-5" />
+            <span>Dark Mode</span>
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
+// ============================================================================
 // MAIN SIDEBAR
 // ============================================================================
 
@@ -322,6 +355,9 @@ export function Sidebar({ tenant, className }: SidebarProps) {
           </div>
         </div>
       </nav>
+
+      {/* Theme Toggle */}
+      <ThemeToggle />
 
       {/* User Menu */}
       <div className="border-t p-2">
