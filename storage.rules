@@ -1,0 +1,102 @@
+rules_version = '2';
+
+/**
+ * GovernanceOS - Firebase Storage Security Rules
+ *
+ * Storage structure:
+ * /tenants/{tenantId}/documents/{documentId}/{filename}
+ * /tenants/{tenantId}/meetings/{meetingId}/attachments/{filename}
+ * /users/{userId}/profile/{filename}
+ */
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if user has access to tenant
+    function hasTenantAccess(tenantId) {
+      return isAuthenticated()
+        && request.auth.token.tenants != null
+        && tenantId in request.auth.token.tenants;
+    }
+
+    // Helper: Check if user is tenant admin
+    function isOrgAdmin(tenantId) {
+      return hasTenantAccess(tenantId)
+        && request.auth.token.tenants[tenantId] in ['owner', 'admin'];
+    }
+
+    // Helper: Validate file size (max 50MB)
+    function isValidFileSize() {
+      return request.resource.size < 50 * 1024 * 1024;
+    }
+
+    // Helper: Validate file type for documents
+    function isValidDocumentType() {
+      return request.resource.contentType.matches('application/pdf')
+        || request.resource.contentType.matches('application/msword')
+        || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*')
+        || request.resource.contentType.matches('text/.*')
+        || request.resource.contentType.matches('image/.*');
+    }
+
+    // =========================================================================
+    // TENANT DOCUMENTS
+    // =========================================================================
+
+    match /tenants/{tenantId}/documents/{allPaths=**} {
+      // Members can read documents
+      allow read: if hasTenantAccess(tenantId);
+
+      // Admins can upload documents
+      allow write: if isOrgAdmin(tenantId)
+        && isValidFileSize()
+        && isValidDocumentType();
+    }
+
+    // =========================================================================
+    // MEETING ATTACHMENTS
+    // =========================================================================
+
+    match /tenants/{tenantId}/meetings/{meetingId}/attachments/{allPaths=**} {
+      // Members can read meeting attachments
+      allow read: if hasTenantAccess(tenantId);
+
+      // Admins and secretaries can upload
+      allow write: if hasTenantAccess(tenantId)
+        && request.auth.token.tenants[tenantId] in ['owner', 'admin', 'secretary', 'chair']
+        && isValidFileSize()
+        && isValidDocumentType();
+    }
+
+    // =========================================================================
+    // USER PROFILE IMAGES
+    // =========================================================================
+
+    match /users/{userId}/profile/{filename} {
+      // Anyone authenticated can read profile images
+      allow read: if isAuthenticated();
+
+      // Users can only upload their own profile image
+      allow write: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024  // 5MB max for profile images
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // =========================================================================
+    // TEMPORARY UPLOADS (for processing)
+    // =========================================================================
+
+    match /temp/{userId}/{allPaths=**} {
+      // Users can read/write their own temp files
+      allow read, write: if isAuthenticated()
+        && request.auth.uid == userId
+        && isValidFileSize();
+    }
+  }
+}
