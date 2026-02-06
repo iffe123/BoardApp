@@ -115,7 +115,7 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold tracking-tight">
           {getGreeting()}, {userProfile?.displayName?.split(' ')[0] || 'there'}
         </h1>
         <p className="text-muted-foreground mt-1">

@@ -160,7 +160,7 @@ export default function DecisionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Decision Register</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Decision Register</h1>
           <p className="text-muted-foreground mt-1">
             Track all board decisions and their implementation status
           </p>

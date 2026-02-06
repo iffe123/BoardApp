@@ -219,7 +219,7 @@ export default function MembersPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Members</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Members</h1>
           <p className="text-muted-foreground mt-1">
             Manage board members, roles, and conflict of interest declarations
           </p>

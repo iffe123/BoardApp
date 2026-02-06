@@ -178,7 +178,7 @@ export default function MeetingDetailPage() {
                 <Badge variant="warning">No Quorum</Badge>
               )}
             </div>
-            <h1 className="text-3xl font-bold">{meeting.title}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
             {meeting.description && (
               <p className="text-muted-foreground mt-1 max-w-2xl">{meeting.description}</p>
             )}
