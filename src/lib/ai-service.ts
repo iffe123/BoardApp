@@ -15,6 +15,12 @@
 import type { Meeting } from '@/types/schema';
 
 // =============================================================================
+// Provider Types
+// =============================================================================
+
+export type AIProvider = 'anthropic' | 'gemini';
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -155,9 +161,32 @@ export interface AIAnalysisResult {
 
 export class AIService {
   private baseUrl: string;
+  private provider: AIProvider;
 
-  constructor(baseUrl: string = '') {
+  constructor(baseUrl: string = '', provider: AIProvider = 'anthropic') {
     this.baseUrl = baseUrl;
+    this.provider = provider;
+  }
+
+  /**
+   * Get or set the current AI provider
+   */
+  getProvider(): AIProvider {
+    return this.provider;
+  }
+
+  setProvider(provider: AIProvider): void {
+    this.provider = provider;
+  }
+
+  /**
+   * Get the analysis endpoint based on the current provider
+   */
+  private getAnalysisEndpoint(): string {
+    if (this.provider === 'gemini') {
+      return `${this.baseUrl}/api/ai/gemini`;
+    }
+    return `${this.baseUrl}/api/ai/comprehensive-analysis`;
   }
 
   /**
@@ -373,7 +402,7 @@ export class AIService {
     options?: AIAnalysisOptions
   ): Promise<AIAnalysisResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/ai/comprehensive-analysis`, {
+      const response = await fetch(this.getAnalysisEndpoint(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -408,9 +437,11 @@ export class AIService {
 
 let aiServiceInstance: AIService | null = null;
 
-export function getAIService(): AIService {
+export function getAIService(provider?: AIProvider): AIService {
   if (!aiServiceInstance) {
-    aiServiceInstance = new AIService();
+    aiServiceInstance = new AIService('', provider);
+  } else if (provider && aiServiceInstance.getProvider() !== provider) {
+    aiServiceInstance.setProvider(provider);
   }
   return aiServiceInstance;
 }
@@ -476,32 +507,52 @@ export const AI_CAPABILITIES = {
 
 export const AI_SETUP_INSTRUCTIONS = {
   title: 'Setting Up AI Features',
-  description: `GovernanceOS uses Anthropic Claude for AI-powered features. Follow these steps to enable AI capabilities:`,
-  steps: [
-    {
-      title: 'Get an API Key',
-      description: 'Sign up at Anthropic and get an API key from the console.',
-      url: 'https://console.anthropic.com',
-      action: 'Visit Console',
+  description: `GovernanceOS supports two AI providers: Anthropic Claude and Google Gemini (via Firebase AI Logic). You can use either or both.`,
+  providers: {
+    anthropic: {
+      name: 'Anthropic Claude',
+      steps: [
+        {
+          title: 'Get an API Key',
+          description: 'Sign up at Anthropic and get an API key from the console.',
+          url: 'https://console.anthropic.com',
+          action: 'Visit Console',
+        },
+        {
+          title: 'Configure Environment',
+          description: 'Add your API key to the .env.local file in your project root:',
+          code: 'ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxx',
+        },
+        {
+          title: 'Restart Server',
+          description: 'Restart your development server for changes to take effect.',
+          code: 'npm run dev',
+        },
+      ],
     },
-    {
-      title: 'Configure Environment',
-      description: 'Add your API key to the .env.local file in your project root:',
-      code: 'ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxx',
+    gemini: {
+      name: 'Google Gemini (Firebase AI Logic)',
+      steps: [
+        {
+          title: 'Enable Gemini Developer API',
+          description: 'Go to Firebase Console → AI Logic and enable the Gemini Developer API.',
+          url: 'https://console.firebase.google.com',
+          action: 'Open Firebase Console',
+        },
+        {
+          title: 'Enable AI Monitoring',
+          description: 'Optionally enable AI monitoring for usage tracking and debugging.',
+        },
+        {
+          title: 'Configure Firebase',
+          description: 'Ensure your Firebase config environment variables are set (NEXT_PUBLIC_FIREBASE_* variables).',
+        },
+      ],
     },
-    {
-      title: 'Restart Server',
-      description: 'Restart your development server for changes to take effect.',
-      code: 'npm run dev',
-    },
-  ],
-  pricing: {
-    note: 'Anthropic charges based on usage. Check current pricing at:',
-    url: 'https://www.anthropic.com/pricing',
   },
   security: [
-    'API keys are only used server-side and never exposed to the client',
-    'All AI requests are made through your backend API routes',
-    'No data is stored by Anthropic beyond the request/response',
+    'Anthropic API keys are only used server-side and never exposed to the client',
+    'Firebase AI Logic uses your Firebase project credentials for authentication',
+    'All AI requests are made through authenticated channels',
   ],
 };
