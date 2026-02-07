@@ -29,7 +29,7 @@ import type {
 // Constants
 // =============================================================================
 
-const DEFAULT_MODEL = 'gemini-2.5-flash-preview-05-20';
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 // =============================================================================
 // Gemini Model Initialization

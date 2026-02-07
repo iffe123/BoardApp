@@ -1,15 +1,16 @@
 /**
- * Gemini AI Analysis API Route (via Firebase AI Logic)
+ * Gemini AI Analysis API Route
  *
- * Server-side endpoint for AI analysis using Gemini through Firebase AI Logic.
- * This provides a server-side alternative to the client-side FirebaseAIService,
- * useful when you need to process sensitive data or perform analysis
- * without exposing it to the client.
+ * Server-side endpoint for AI analysis using Google Gemini.
+ * Uses @google/generative-ai for server-side calls (no App Check needed).
+ * The client-side firebase-ai.ts service uses firebase/ai for browser usage.
+ *
+ * Requires GEMINI_API_KEY in .env.local (get from https://aistudio.google.com/apikey)
+ * OR falls back to NEXT_PUBLIC_FIREBASE_API_KEY if Gemini Developer API is enabled.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAI, GoogleAIBackend, getGenerativeModel } from 'firebase/ai';
-import { initializeApp, getApps } from 'firebase/app';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // =============================================================================
 // Types
@@ -53,25 +54,23 @@ interface GeminiAnalysisRequest {
 }
 
 // =============================================================================
-// Firebase initialization for server-side
+// Model initialization
 // =============================================================================
 
-function getServerModel() {
-  const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  };
+const MODEL_NAME = 'gemini-2.0-flash';
 
-  const app = getApps().length === 0
-    ? initializeApp(firebaseConfig)
-    : getApps()[0];
+function getModel() {
+  // Prefer dedicated Gemini API key, fall back to Firebase API key
+  const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
-  const ai = getAI(app, { backend: new GoogleAIBackend() });
-  return getGenerativeModel(ai, { model: 'gemini-2.5-flash-preview-05-20' });
+  if (!apiKey) {
+    throw new Error(
+      'No API key found. Set GEMINI_API_KEY or NEXT_PUBLIC_FIREBASE_API_KEY in .env.local'
+    );
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ model: MODEL_NAME });
 }
 
 // =============================================================================
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const model = getServerModel();
+    const model = getModel();
 
     // Build prompt
     let prompt = SYSTEM_PROMPTS[analysisType] + '\n\n';
@@ -165,23 +164,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       analysisType,
       generatedAt: new Date().toISOString(),
-      model: 'gemini-2.5-flash-preview-05-20',
-      provider: 'firebase-ai',
+      model: MODEL_NAME,
+      provider: 'gemini',
       ...analysis,
     });
   } catch (error) {
     console.error('Gemini analysis error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    if (errorMessage.includes('not found') || errorMessage.includes('API_KEY')) {
+    if (errorMessage.includes('API key') || errorMessage.includes('API_KEY') || errorMessage.includes('No API key')) {
       return NextResponse.json(
         {
-          error: 'Firebase AI Logic not configured',
-          details: 'Ensure the Gemini Developer API is enabled in your Firebase project.',
+          error: 'Gemini API not configured',
+          details: errorMessage,
           setup: {
-            step1: 'Go to Firebase Console → AI Logic',
-            step2: 'Enable the Gemini Developer API',
-            step3: 'Ensure your Firebase config environment variables are set',
+            step1: 'Get an API key from https://aistudio.google.com/apikey',
+            step2: 'Add GEMINI_API_KEY=your-key to .env.local',
+            step3: 'Or enable Gemini Developer API in Firebase Console → AI Logic',
           },
         },
         { status: 503 }
@@ -196,12 +195,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  const hasKey = !!(process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+
   return NextResponse.json({
-    name: 'Gemini AI Analysis API (Firebase AI Logic)',
+    name: 'Gemini AI Analysis API',
     version: '1.0.0',
-    description: 'AI analysis powered by Gemini via Firebase AI Logic',
-    model: 'gemini-2.5-flash-preview-05-20',
-    provider: 'firebase-ai',
+    description: 'AI analysis powered by Google Gemini',
+    model: MODEL_NAME,
+    provider: 'gemini',
+    configured: hasKey,
     endpoints: {
       POST: {
         description: 'Run AI analysis using Gemini',
