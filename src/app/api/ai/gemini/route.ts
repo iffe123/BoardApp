@@ -2,15 +2,14 @@
  * Gemini AI Analysis API Route
  *
  * Server-side endpoint for AI analysis using Google Gemini.
- * Uses @google/generative-ai for server-side calls (no App Check needed).
- * The client-side firebase-ai.ts service uses firebase/ai for browser usage.
+ * Calls the Gemini API directly with proxy support for all environments.
  *
  * Requires GEMINI_API_KEY in .env.local (get from https://aistudio.google.com/apikey)
- * OR falls back to NEXT_PUBLIC_FIREBASE_API_KEY if Gemini Developer API is enabled.
+ * OR falls back to NEXT_PUBLIC_FIREBASE_API_KEY.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ProxyAgent } from 'undici';
 
 // =============================================================================
 // Types
@@ -54,23 +53,59 @@ interface GeminiAnalysisRequest {
 }
 
 // =============================================================================
-// Model initialization
+// Constants
 // =============================================================================
 
 const MODEL_NAME = 'gemini-2.0-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent`;
 
-function getModel() {
-  // Prefer dedicated Gemini API key, fall back to Firebase API key
+// =============================================================================
+// Gemini API call with proxy support
+// =============================================================================
+
+async function callGemini(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-
   if (!apiKey) {
-    throw new Error(
-      'No API key found. Set GEMINI_API_KEY or NEXT_PUBLIC_FIREBASE_API_KEY in .env.local'
-    );
+    throw new Error('No API key found. Set GEMINI_API_KEY in .env.local');
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: MODEL_NAME });
+  const url = `${GEMINI_API_URL}?key=${apiKey}`;
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 4096,
+    },
+  });
+
+  // Use proxy if available (needed in some server environments)
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
+  const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  };
+
+  if (proxyUrl) {
+    fetchOptions.dispatcher = new ProxyAgent(proxyUrl);
+  }
+
+  const response = await fetch(url, fetchOptions);
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Gemini API error (${response.status}): ${errorBody.substring(0, 200)}`);
+  }
+
+  const data = await response.json();
+
+  // Extract text from Gemini response format
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content?.parts?.[0]?.text) {
+    throw new Error('No text in Gemini response');
+  }
+
+  return candidate.content.parts[0].text;
 }
 
 // =============================================================================
@@ -103,8 +138,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const model = getModel();
 
     // Build prompt
     let prompt = SYSTEM_PROMPTS[analysisType] + '\n\n';
@@ -144,8 +177,7 @@ export async function POST(request: NextRequest) {
 
     prompt += `\nRespond with a JSON object only (no markdown code fences). Analysis type: ${analysisType}.`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await callGemini(prompt);
 
     // Parse the response
     let analysis: Record<string, unknown>;
@@ -172,7 +204,7 @@ export async function POST(request: NextRequest) {
     console.error('Gemini analysis error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    if (errorMessage.includes('API key') || errorMessage.includes('API_KEY') || errorMessage.includes('No API key')) {
+    if (errorMessage.includes('API key') || errorMessage.includes('No API key')) {
       return NextResponse.json(
         {
           error: 'Gemini API not configured',
@@ -180,7 +212,7 @@ export async function POST(request: NextRequest) {
           setup: {
             step1: 'Get an API key from https://aistudio.google.com/apikey',
             step2: 'Add GEMINI_API_KEY=your-key to .env.local',
-            step3: 'Or enable Gemini Developer API in Firebase Console → AI Logic',
+            step3: 'Restart the development server',
           },
         },
         { status: 503 }
