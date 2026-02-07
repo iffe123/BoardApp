@@ -156,56 +156,63 @@ export function AICapabilitiesCard({
               {AI_SETUP_INSTRUCTIONS.description}
             </p>
 
-            <div className="space-y-4">
-              {AI_SETUP_INSTRUCTIONS.steps.map((step, index) => (
-                <div key={index} className="flex gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center text-sm font-medium text-amber-800 dark:text-amber-200">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-amber-800 dark:text-amber-200">
-                      {step.title}
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                      {step.description}
-                    </p>
-                    {step.url && (
-                      <a
-                        href={step.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-amber-800 dark:text-amber-200 hover:underline mt-1"
-                      >
-                        {step.action || 'Learn More'}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                    {step.code && (
-                      <div className="mt-2 relative">
-                        <pre className="text-xs bg-amber-100 dark:bg-amber-900 rounded p-2 pr-10 overflow-x-auto">
-                          <code>{step.code}</code>
-                        </pre>
-                        <button
-                          onClick={() => copyToClipboard(step.code!, `step-${index}`)}
-                          className="absolute right-2 top-2 p-1 rounded hover:bg-amber-200 dark:hover:bg-amber-800"
-                        >
-                          {copiedCode === `step-${index}` ? (
-                            <Check className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </button>
+            {Object.entries(AI_SETUP_INSTRUCTIONS.providers).map(([key, provider]) => (
+              <div key={key} className="mb-4">
+                <h5 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                  {provider.name}
+                </h5>
+                <div className="space-y-4">
+                  {provider.steps.map((step: { title: string; description: string; url?: string; action?: string; code?: string }, index: number) => (
+                    <div key={index} className="flex gap-3">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center text-sm font-medium text-amber-800 dark:text-amber-200">
+                        {index + 1}
                       </div>
-                    )}
-                  </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm text-amber-800 dark:text-amber-200">
+                          {step.title}
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                          {step.description}
+                        </p>
+                        {step.url && (
+                          <a
+                            href={step.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-amber-800 dark:text-amber-200 hover:underline mt-1"
+                          >
+                            {step.action || 'Learn More'}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {step.code && (
+                          <div className="mt-2 relative">
+                            <pre className="text-xs bg-amber-100 dark:bg-amber-900 rounded p-2 pr-10 overflow-x-auto">
+                              <code>{step.code}</code>
+                            </pre>
+                            <button
+                              onClick={() => copyToClipboard(step.code!, `${key}-step-${index}`)}
+                              className="absolute right-2 top-2 p-1 rounded hover:bg-amber-200 dark:hover:bg-amber-800"
+                            >
+                              {copiedCode === `${key}-step-${index}` ? (
+                                <Check className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
 
             <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
               <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
                 <Shield className="h-4 w-4" />
-                <span>Your API key is stored securely and only used server-side</span>
+                <span>API keys are stored securely. Firebase AI uses project credentials.</span>
               </div>
             </div>
           </div>

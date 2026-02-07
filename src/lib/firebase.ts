@@ -53,6 +53,8 @@ import {
   getDownloadURL,
   deleteObject,
 } from 'firebase/storage';
+import { getAI, GoogleAIBackend } from 'firebase/ai';
+import type { AI } from 'firebase/ai';
 
 // Firebase configuration - use environment variables
 const firebaseConfig = {
@@ -70,6 +72,7 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
+let firebaseAI: AI;
 
 function initializeFirebase() {
   // Skip initialization during build if no API key is available
@@ -81,6 +84,7 @@ function initializeFirebase() {
       auth: null as unknown as Auth,
       db: null as unknown as Firestore,
       storage: null as unknown as FirebaseStorage,
+      firebaseAI: null as unknown as AI,
     };
   }
 
@@ -94,6 +98,9 @@ function initializeFirebase() {
   db = getFirestore(app);
   storage = getStorage(app);
 
+  // Initialize Firebase AI Logic with Gemini Developer API backend
+  firebaseAI = getAI(app, { backend: new GoogleAIBackend() });
+
   // Connect to emulators in development
   if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
     try {
@@ -105,7 +112,7 @@ function initializeFirebase() {
     }
   }
 
-  return { app, auth, db, storage };
+  return { app, auth, db, storage, firebaseAI };
 }
 
 // Initialize on module load
@@ -114,9 +121,10 @@ app = firebase.app;
 auth = firebase.auth;
 db = firebase.db;
 storage = firebase.storage;
+firebaseAI = firebase.firebaseAI;
 
 // Export initialized instances
-export { app, auth, db, storage };
+export { app, auth, db, storage, firebaseAI };
 
 // Export Firebase utilities
 export {
