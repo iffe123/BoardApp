@@ -228,7 +228,7 @@ export default function NewMeetingPage() {
           <ArrowLeft className="h-4 w-4 mr-1" />
           Back to Meetings
         </Link>
-        <h1 className="text-3xl font-bold">Schedule New Meeting</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Schedule New Meeting</h1>
         <p className="text-muted-foreground mt-1">Create a new board or committee meeting</p>
       </div>
 

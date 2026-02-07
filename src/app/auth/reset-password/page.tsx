@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
             <CheckCircle className="w-8 h-8 text-emerald-400" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Check your email</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Check your email</h1>
           <p className="text-white/50">
             We&apos;ve sent a password reset link to <span className="text-white">{email}</span>
           </p>
@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Reset your password</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Reset your password</h1>
         <p className="text-white/50">
           Enter your email address and we&apos;ll send you a link to reset your password
         </p>

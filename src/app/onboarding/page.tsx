@@ -138,7 +138,7 @@ export default function OnboardingPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 mb-6">
               <Building2 className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome to GovernanceOS</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Welcome to GovernanceOS</h1>
             <p className="text-white/50">Let&apos;s set up your organization to get started</p>
           </div>
 

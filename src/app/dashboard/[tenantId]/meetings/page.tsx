@@ -178,7 +178,7 @@ export default function MeetingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Meetings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
           <p className="text-muted-foreground mt-1">
             Schedule and manage board meetings
           </p>
@@ -347,7 +347,7 @@ export default function MeetingsPage() {
           {/* Upcoming Meetings */}
           {upcomingMeetings.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold mb-4">Upcoming Meetings</h2>
+              <h2 className="text-lg font-semibold tracking-tight mb-4">Upcoming Meetings</h2>
               <div
                 className={cn(
                   viewMode === 'grid'
@@ -369,7 +369,7 @@ export default function MeetingsPage() {
           {/* Past Meetings */}
           {pastMeetings.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold mb-4">Past Meetings</h2>
+              <h2 className="text-lg font-semibold tracking-tight mb-4">Past Meetings</h2>
               <div
                 className={cn(
                   viewMode === 'grid'

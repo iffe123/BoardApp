@@ -341,7 +341,7 @@ export function Sidebar({ tenant, className }: SidebarProps) {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
             Quick Actions
           </p>
           <div className="space-y-1">
