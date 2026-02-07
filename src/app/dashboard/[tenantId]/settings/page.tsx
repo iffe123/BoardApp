@@ -33,6 +33,314 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
+import type { SubscriptionTier } from '@/types/schema';
+
+// Billing Section Component
+interface BillingSectionProps {
+  tenantId: string;
+  subscription?: {
+    tier: SubscriptionTier;
+    status: 'active' | 'past_due' | 'cancelled' | 'trialing';
+    currentPeriodEnd: { toDate: () => Date };
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+  };
+  userEmail?: string;
+}
+
+const PLAN_DETAILS: Record<SubscriptionTier, { name: string; price: number; members: number; features: string[] }> = {
+  free: { name: 'Free Trial', price: 0, members: 3, features: ['Basic features', '14-day trial'] },
+  starter: { name: 'Starter', price: 990, members: 7, features: ['AI meeting minutes', 'Decision register', '5GB storage'] },
+  professional: { name: 'Professional', price: 2490, members: 15, features: ['BankID signatures', 'Jäv detection', 'ERP integration', '25GB storage'] },
+  enterprise: { name: 'Enterprise', price: 0, members: -1, features: ['Unlimited members', 'Multi-org', 'SSO', 'Custom branding'] },
+};
+
+function BillingSection({ tenantId, subscription, userEmail }: BillingSectionProps) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isPortalLoading, setIsPortalLoading] = React.useState(false);
+
+  const currentTier = subscription?.tier || 'free';
+  const planDetails = PLAN_DETAILS[currentTier];
+  const isTrialing = subscription?.status === 'trialing';
+  const isPastDue = subscription?.status === 'past_due';
+  const periodEnd = subscription?.currentPeriodEnd?.toDate();
+
+  const handleUpgrade = async (tier: SubscriptionTier) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          tier,
+          billingPeriod: 'annual',
+          email: userEmail,
+          customerId: subscription?.stripeCustomerId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.setupRequired) {
+        alert('Payment system is being configured. Please try again later or contact support.');
+      } else {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    if (!subscription?.stripeCustomerId) {
+      alert('No billing account found. Please upgrade your plan first.');
+      return;
+    }
+
+    setIsPortalLoading(true);
+    try {
+      const response = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: subscription.stripeCustomerId,
+          returnUrl: window.location.href,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Failed to open billing portal');
+      }
+    } catch (error) {
+      console.error('Billing portal error:', error);
+      alert('Failed to open billing portal. Please try again.');
+    } finally {
+      setIsPortalLoading(false);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    if (price === 0) return 'Free';
+    return new Intl.NumberFormat('sv-SE', {
+      style: 'currency',
+      currency: 'SEK',
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Current Plan */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Plan</CardTitle>
+          <CardDescription>
+            Manage your subscription and billing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className={`flex items-center justify-between p-6 rounded-lg border-2 ${
+            isPastDue ? 'border-destructive bg-destructive/5' : 'border-primary bg-primary/5'
+          }`}>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className={isPastDue ? 'bg-destructive' : ''}>
+                  {planDetails.name}
+                </Badge>
+                {isTrialing && (
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800">
+                    Trial
+                  </Badge>
+                )}
+                {isPastDue && (
+                  <Badge variant="outline" className="bg-red-100 text-red-800">
+                    Payment Required
+                  </Badge>
+                )}
+              </div>
+              <p className="text-2xl font-bold">
+                {currentTier === 'enterprise' ? 'Custom Pricing' : `${formatPrice(planDetails.price)}/month`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {planDetails.members === -1 ? 'Unlimited' : `Up to ${planDetails.members}`} board members
+              </p>
+            </div>
+            {currentTier !== 'enterprise' && (
+              <Button
+                variant={isPastDue ? 'destructive' : 'outline'}
+                onClick={() => handleUpgrade(currentTier === 'starter' ? 'professional' : 'starter')}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                {isPastDue ? 'Update Payment' : 'Upgrade Plan'}
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Button>
+            )}
+          </div>
+
+          {periodEnd && (
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {isTrialing ? 'Trial ends' : 'Next billing date'}
+                </span>
+                <span className="font-medium">
+                  {periodEnd.toLocaleDateString('sv-SE', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
+              {subscription?.stripeCustomerId && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Billing account</span>
+                  <span className="font-medium">Connected</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {subscription?.stripeCustomerId && (
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageBilling}
+                disabled={isPortalLoading}
+              >
+                {isPortalLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CreditCard className="h-4 w-4 mr-2" />
+                )}
+                Manage Billing & Invoices
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Plan Comparison */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Plans</CardTitle>
+          <CardDescription>
+            Compare features and choose the right plan for your organization
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            {(['starter', 'professional', 'enterprise'] as SubscriptionTier[]).map((tier) => {
+              const plan = PLAN_DETAILS[tier];
+              const isCurrent = tier === currentTier;
+
+              return (
+                <div
+                  key={tier}
+                  className={`p-4 rounded-lg border ${
+                    isCurrent ? 'border-primary bg-primary/5' : 'border-muted'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold">{plan.name}</h4>
+                    {isCurrent && <Badge variant="secondary">Current</Badge>}
+                  </div>
+                  <p className="text-xl font-bold mb-2">
+                    {tier === 'enterprise' ? 'Custom' : `${formatPrice(plan.price)}/mo`}
+                  </p>
+                  <ul className="space-y-1 text-sm text-muted-foreground mb-4">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  {!isCurrent && (
+                    <Button
+                      variant={tier === 'enterprise' ? 'outline' : 'default'}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => tier === 'enterprise'
+                        ? window.location.href = '/contact?type=enterprise'
+                        : handleUpgrade(tier)
+                      }
+                      disabled={isLoading}
+                    >
+                      {tier === 'enterprise' ? 'Contact Sales' : 'Upgrade'}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Usage Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Usage</CardTitle>
+          <CardDescription>
+            Current usage for this billing period
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span>Board Members</span>
+                <span>
+                  6 of {planDetails.members === -1 ? '∞' : planDetails.members}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-primary transition-all"
+                  style={{ width: planDetails.members === -1 ? '10%' : `${Math.min(100, (6 / planDetails.members) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span>Storage</span>
+                <span>2.4 GB of {currentTier === 'free' ? '100 MB' : currentTier === 'starter' ? '5 GB' : currentTier === 'professional' ? '25 GB' : '∞'}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div className="h-2 rounded-full bg-primary" style={{ width: '24%' }} />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span>Meetings This Month</span>
+                <span>8 {currentTier === 'free' ? 'of 2' : '(unlimited)'}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div className="h-2 rounded-full bg-primary" style={{ width: currentTier === 'free' ? '100%' : '30%' }} />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const params = useParams();
@@ -861,93 +1169,11 @@ export default function SettingsPage() {
         {/* Billing */}
         {isOwner && (
           <TabsContent value="billing">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Current Plan</CardTitle>
-                  <CardDescription>
-                    Manage your subscription and billing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between p-6 rounded-lg border-2 border-primary bg-primary/5">
-                    <div>
-                      <Badge className="mb-2">Professional</Badge>
-                      <p className="text-2xl font-bold">2,990 SEK/month</p>
-                      <p className="text-sm text-muted-foreground">
-                        Up to 10 board members · Unlimited meetings
-                      </p>
-                    </div>
-                    <Button variant="outline">
-                      Upgrade Plan
-                      <ExternalLink className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-
-                  <div className="mt-6 space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Next billing date</span>
-                      <span className="font-medium">March 1, 2024</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Payment method</span>
-                      <span className="font-medium">Visa ending in 4242</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Billing email</span>
-                      <span className="font-medium">billing@example.com</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex gap-2">
-                    <Button variant="outline" size="sm">Update Payment Method</Button>
-                    <Button variant="outline" size="sm">Download Invoices</Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Usage</CardTitle>
-                  <CardDescription>
-                    Current usage for this billing period
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span>Board Members</span>
-                        <span>6 of 10</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted">
-                        <div className="h-2 rounded-full bg-primary" style={{ width: '60%' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span>Storage</span>
-                        <span>2.4 GB of 10 GB</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted">
-                        <div className="h-2 rounded-full bg-primary" style={{ width: '24%' }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span>AI Minutes Generated</span>
-                        <span>15 of 50</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted">
-                        <div className="h-2 rounded-full bg-primary" style={{ width: '30%' }} />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <BillingSection
+              tenantId={tenantId}
+              subscription={currentTenant?.subscription}
+              userEmail={user?.email || userProfile?.email}
+            />
           </TabsContent>
         )}
       </Tabs>

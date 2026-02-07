@@ -56,6 +56,7 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
               <Link href="#platform" className="hover:text-white transition-colors">Platform</Link>
               <Link href="#capabilities" className="hover:text-white transition-colors">Capabilities</Link>
+              <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
               <Link href="#enterprise" className="hover:text-white transition-colors">Enterprise</Link>
             </div>
           </div>
@@ -248,10 +249,10 @@ export default function LandingPage() {
             <div className="flex items-center gap-8">
               <span className="text-lg font-semibold">GovernanceOS</span>
               <div className="hidden md:flex items-center gap-6 text-sm text-white/40">
-                <Link href="#" className="hover:text-white transition-colors">Platform</Link>
-                <Link href="#" className="hover:text-white transition-colors">Enterprise</Link>
-                <Link href="#" className="hover:text-white transition-colors">Security</Link>
-                <Link href="#" className="hover:text-white transition-colors">Careers</Link>
+                <Link href="#platform" className="hover:text-white transition-colors">Platform</Link>
+                <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
               </div>
             </div>
             <p className="text-sm text-white/40">
