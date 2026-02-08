@@ -27,6 +27,10 @@ export type SubscriptionTier = 'free' | 'starter' | 'professional' | 'enterprise
 
 export type FinancialPeriodType = 'monthly' | 'quarterly' | 'annual';
 
+// Share Registry (Aktiebok) types
+export type ShareClass = 'A' | 'B' | 'C' | 'preference' | 'common';
+export type ShareTransactionType = 'founding' | 'new_issue' | 'transfer' | 'split' | 'redemption' | 'bonus_issue';
+
 // ============================================================================
 // USER MODEL - Global collection (/users/{userId})
 // ============================================================================
@@ -851,6 +855,101 @@ export interface Notification {
 }
 
 // ============================================================================
+// SHARE REGISTRY (AKTIEBOK) MODELS
+// ============================================================================
+
+// /tenants/{tenantId}/shareholders/{shareholderId}
+export interface Shareholder {
+  id: string;
+  tenantId: string;
+  name: string;
+  organizationNumber?: string; // Personnummer or org number (hashed)
+  email?: string;
+  type: 'individual' | 'company' | 'fund';
+  address?: {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// /tenants/{tenantId}/shares/{shareId}
+export interface ShareEntry {
+  id: string;
+  tenantId: string;
+  shareholderId: string;
+  shareClass: ShareClass;
+  shareNumberFrom: number;
+  shareNumberTo: number;
+  numberOfShares: number;
+  nominalValue: number;       // Kvotvärde
+  votesPerShare: number;
+  acquisitionDate: Timestamp;
+  acquisitionPrice?: number;
+  transactionId: string;
+  isActive: boolean;          // false if sold/redeemed
+  createdAt: Timestamp;
+}
+
+// /tenants/{tenantId}/share_transactions/{transactionId}
+export interface ShareTransaction {
+  id: string;
+  tenantId: string;
+  type: ShareTransactionType;
+  date: Timestamp;
+  description: string;
+
+  fromShareholderId?: string;
+  toShareholderId: string;
+  shareClass: ShareClass;
+  numberOfShares: number;
+  shareNumberFrom: number;
+  shareNumberTo: number;
+  pricePerShare?: number;
+  totalAmount?: number;
+
+  // Linked to board/meeting decisions
+  decisionId?: string;
+  meetingId?: string;
+
+  // Digital signatures
+  signatureIds?: string[];
+
+  // Metadata
+  registeredBy: string;
+  registeredAt: Timestamp;
+  createdAt: Timestamp;
+}
+
+// Cap table summary (computed view)
+export interface CapTableSummary {
+  tenantId: string;
+  totalShares: number;
+  totalShareCapital: number;
+  shareClasses: {
+    class: ShareClass;
+    totalShares: number;
+    votesPerShare: number;
+    totalVotes: number;
+    percentage: number;
+  }[];
+  shareholders: {
+    shareholderId: string;
+    name: string;
+    totalShares: number;
+    totalVotes: number;
+    ownershipPercentage: number;
+    votingPercentage: number;
+    sharesByClass: Partial<Record<ShareClass, number>>;
+  }[];
+  lastUpdated: Timestamp;
+}
+
+// ============================================================================
 // ZOD SCHEMAS FOR VALIDATION
 // ============================================================================
 
@@ -915,7 +1014,40 @@ export const ConflictOfInterestSchema = z.object({
   description: z.string().max(1000).optional(),
 });
 
+export const ShareholderCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  organizationNumber: z.string().max(20).optional(),
+  email: z.string().email().optional(),
+  type: z.enum(['individual', 'company', 'fund']),
+  address: z.object({
+    street: z.string().min(1),
+    city: z.string().min(1),
+    postalCode: z.string().min(1),
+    country: z.string().min(1),
+  }).optional(),
+});
+
+export const ShareTransactionCreateSchema = z.object({
+  type: z.enum(['founding', 'new_issue', 'transfer', 'split', 'redemption', 'bonus_issue']),
+  date: z.string().or(z.date()),
+  description: z.string().min(1).max(1000),
+  fromShareholderId: z.string().optional(),
+  toShareholderId: z.string().min(1),
+  shareClass: z.enum(['A', 'B', 'C', 'preference', 'common']),
+  numberOfShares: z.number().int().positive(),
+  shareNumberFrom: z.number().int().positive(),
+  shareNumberTo: z.number().int().positive(),
+  pricePerShare: z.number().min(0).optional(),
+  totalAmount: z.number().min(0).optional(),
+  nominalValue: z.number().positive(),
+  votesPerShare: z.number().positive(),
+  decisionId: z.string().optional(),
+  meetingId: z.string().optional(),
+});
+
 export type FinancialReportInput = z.infer<typeof FinancialReportSchema>;
 export type AgendaItemInput = z.infer<typeof AgendaItemSchema>;
 export type MeetingCreateInput = z.infer<typeof MeetingCreateSchema>;
 export type ConflictOfInterestInput = z.infer<typeof ConflictOfInterestSchema>;
+export type ShareholderCreateInput = z.infer<typeof ShareholderCreateSchema>;
+export type ShareTransactionCreateInput = z.infer<typeof ShareTransactionCreateSchema>;

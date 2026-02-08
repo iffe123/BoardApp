@@ -211,6 +211,14 @@ export const collections = {
   signatures: (tenantId: string) => collection(db, 'tenants', tenantId, 'signatures'),
   signature: (tenantId: string, signatureId: string) => doc(db, 'tenants', tenantId, 'signatures', signatureId),
 
+  // Share Registry (Aktiebok)
+  shareholders: (tenantId: string) => collection(db, 'tenants', tenantId, 'shareholders'),
+  shareholder: (tenantId: string, shareholderId: string) => doc(db, 'tenants', tenantId, 'shareholders', shareholderId),
+  shares: (tenantId: string) => collection(db, 'tenants', tenantId, 'shares'),
+  share: (tenantId: string, shareId: string) => doc(db, 'tenants', tenantId, 'shares', shareId),
+  shareTransactions: (tenantId: string) => collection(db, 'tenants', tenantId, 'share_transactions'),
+  shareTransaction: (tenantId: string, transactionId: string) => doc(db, 'tenants', tenantId, 'share_transactions', transactionId),
+
   systemTemplates: () => collection(db, 'system_templates'),
   clientManagers: () => collection(db, 'client_managers'),
 };

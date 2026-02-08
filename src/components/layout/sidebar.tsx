@@ -28,6 +28,7 @@ import {
   Sun,
   Moon,
   CircleDot,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -95,6 +96,11 @@ const getNavItems = (tenantId: string): NavItem[] => [
     label: 'Decisions',
     href: `/dashboard/${tenantId}/decisions`,
     icon: <Shield className="h-5 w-5" />,
+  },
+  {
+    label: 'Aktiebok',
+    href: `/dashboard/${tenantId}/share-registry`,
+    icon: <BookOpen className="h-5 w-5" />,
   },
   {
     label: 'Members',
