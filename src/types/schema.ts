@@ -610,6 +610,41 @@ export interface ERPConnection {
 }
 
 // ============================================================================
+// CALENDAR INTEGRATION MODEL
+// ============================================================================
+
+export interface CalendarConnection {
+  id: string;
+  tenantId: string;
+
+  provider: 'microsoft' | 'google';
+  status: 'active' | 'disconnected' | 'error' | 'pending_auth';
+
+  // OAuth tokens (encrypted in storage)
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiresAt?: Timestamp;
+
+  // Provider-specific account info
+  accountEmail?: string;
+  accountName?: string;
+  calendarId?: string; // The specific calendar to sync with
+
+  // Sync settings
+  syncEnabled: boolean;
+  syncDirection: 'one_way' | 'two_way'; // one_way = push meetings to external calendar
+  autoSyncNewMeetings: boolean;
+  lastSyncAt?: Timestamp;
+  lastSyncStatus?: 'success' | 'partial' | 'failed';
+  lastSyncError?: string;
+
+  // Metadata
+  connectedAt: Timestamp;
+  connectedBy: string;
+  updatedAt: Timestamp;
+}
+
+// ============================================================================
 // DECISION REGISTER - Sub-collection (/tenants/{tenantId}/decisions/{decisionId})
 // ============================================================================
 

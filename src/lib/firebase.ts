@@ -202,6 +202,9 @@ export const collections = {
   erpConnections: (tenantId: string) => collection(db, 'tenants', tenantId, 'erp_connections'),
   erpConnection: (tenantId: string, connectionId: string) => doc(db, 'tenants', tenantId, 'erp_connections', connectionId),
 
+  calendarConnections: (tenantId: string) => collection(db, 'tenants', tenantId, 'calendar_connections'),
+  calendarConnection: (tenantId: string, connectionId: string) => doc(db, 'tenants', tenantId, 'calendar_connections', connectionId),
+
   auditLogs: (tenantId: string) => collection(db, 'tenants', tenantId, 'audit_logs'),
   signatureAudits: (tenantId: string) => collection(db, 'tenants', tenantId, 'signature_audits'),
   notifications: (tenantId: string) => collection(db, 'tenants', tenantId, 'notifications'),
