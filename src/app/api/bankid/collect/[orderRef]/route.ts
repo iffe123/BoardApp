@@ -132,7 +132,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       );
     }
 
-    const signatureDoc = snapshot.docs[0];
+    const signatureDoc = snapshot.docs[0]!;
     const signatureData = signatureDoc.data();
 
     // If already complete or failed, return cached status

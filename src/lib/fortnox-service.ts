@@ -177,7 +177,7 @@ export async function storeFortnoxConnection(
 
   if (!existingSnap.empty) {
     // Update existing connection
-    const existingDoc = existingSnap.docs[0];
+    const existingDoc = existingSnap.docs[0]!;
     await updateDoc(existingDoc.ref, {
       ...erpConnection,
       connectedAt: existingDoc.data().connectedAt || Timestamp.now(),
@@ -199,7 +199,7 @@ export async function disconnectFortnox(tenantId: string): Promise<void> {
   const existingSnap = await getDocs(existingQuery);
 
   if (!existingSnap.empty) {
-    const connectionDoc = existingSnap.docs[0];
+    const connectionDoc = existingSnap.docs[0]!;
     await updateDoc(connectionDoc.ref, {
       status: 'disconnected',
       accessToken: null,
@@ -224,7 +224,7 @@ export async function getValidAccessToken(tenantId: string): Promise<string> {
     throw new Error('Fortnox not connected');
   }
 
-  const connectionDoc = connectionsSnap.docs[0];
+  const connectionDoc = connectionsSnap.docs[0]!;
   const connection = connectionDoc.data() as ERPConnection;
 
   if (!connection.accessToken || !connection.refreshToken) {
@@ -477,7 +477,7 @@ export async function syncFortnoxFinancials(
   const connectionsSnap = await getDocs(connectionsQuery);
 
   if (!connectionsSnap.empty) {
-    const connectionDoc = connectionsSnap.docs[0];
+    const connectionDoc = connectionsSnap.docs[0]!;
     await updateDoc(connectionDoc.ref, {
       lastSyncAt: Timestamp.now(),
       lastSyncStatus: errors.length > 0 ? 'partial' : 'success',

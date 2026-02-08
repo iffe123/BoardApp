@@ -172,7 +172,7 @@ export default function DocumentsPage() {
 
     try {
       for (let i = 0; i < uploadFiles.length; i++) {
-        const file = uploadFiles[i];
+        const file = uploadFiles[i]!;
         const formData = new FormData();
         formData.append('file', file);
         formData.append('tenantId', tenantId);

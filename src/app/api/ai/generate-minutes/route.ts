@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { verifySession, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { AgendaItem, MeetingAttendee, DecisionOutcome } from '@/types/schema';
 
 interface MinutesRequest {
@@ -81,6 +84,17 @@ function formatAttendeesForPrompt(attendees: MeetingAttendee[]): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
+    // Rate limit AI endpoints more strictly
+    const rateCheck = checkRateLimit(`ai:${user.uid}`, RateLimits.ai);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'AI rate limit exceeded. Please wait before making another request.' },
+        { status: 429 }
+      );
+    }
+
     const body: MinutesRequest = await request.json();
     const {
       meetingTitle,
@@ -99,6 +113,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    logger.info('Generating meeting minutes', {
+      userId: user.uid,
+      action: 'ai.generate_minutes',
+      metadata: { itemCount: agendaItems.length, locale },
+    });
 
     const formattedAgenda = formatAgendaForPrompt(agendaItems);
     const formattedAttendees = formatAttendeesForPrompt(attendees);
@@ -185,7 +205,7 @@ Respond with only the JSON object, no additional text.`;
       let jsonStr = textContent.text;
       // Handle potential markdown code blocks
       const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch?.[1]) {
         jsonStr = jsonMatch[1];
       }
       minutes = JSON.parse(jsonStr);
@@ -236,7 +256,8 @@ Respond with only the JSON object, no additional text.`;
       itemCount: minutes.itemMinutes.length,
     });
   } catch (error) {
-    console.error('Minutes generation error:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Minutes generation error', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

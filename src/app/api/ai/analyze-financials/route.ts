@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { verifySession, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 
 interface FinancialPeriodData {
@@ -83,8 +86,8 @@ function formatFinancialTable(periods: FinancialPeriodData[], currency: string):
 function calculateVariances(periods: FinancialPeriodData[]): string {
   if (periods.length < 2) return 'Insufficient data for variance analysis.';
 
-  const current = periods[periods.length - 1];
-  const previous = periods[periods.length - 2];
+  const current = periods[periods.length - 1]!;
+  const previous = periods[periods.length - 2]!;
 
   const variances: string[] = [];
 
@@ -105,6 +108,17 @@ function calculateVariances(periods: FinancialPeriodData[]): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
+    // Rate limit AI endpoints
+    const rateCheck = checkRateLimit(`ai:${user.uid}`, RateLimits.ai);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'AI rate limit exceeded. Please wait before making another request.' },
+        { status: 429 }
+      );
+    }
+
     const body: AnalysisRequest = await request.json();
     const { periods, currency = 'SEK', companyName = 'the company' } = body;
 
@@ -114,6 +128,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    logger.info('Generating financial analysis', {
+      userId: user.uid,
+      action: 'ai.analyze_financials',
+      metadata: { periodsCount: periods.length },
+    });
 
     // Sort periods chronologically
     const sortedPeriods = [...periods].sort((a, b) => a.period.localeCompare(b.period));
@@ -167,7 +187,7 @@ Respond with only the JSON object, no additional text.`;
       // Try to extract JSON from the response (handle potential markdown code blocks)
       let jsonStr = textContent.text;
       const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch?.[1]) {
         jsonStr = jsonMatch[1];
       }
       analysis = JSON.parse(jsonStr);
@@ -188,7 +208,8 @@ Respond with only the JSON object, no additional text.`;
       periodsAnalyzed: recentPeriods.length,
     });
   } catch (error) {
-    console.error('Financial analysis error:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Financial analysis error', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

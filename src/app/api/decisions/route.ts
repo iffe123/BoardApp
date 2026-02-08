@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp, db } from '@/lib/firebase';
 import { getDocs, addDoc, query, orderBy, where, getDoc } from 'firebase/firestore';
+import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { Decision, Meeting } from '@/types/schema';
 import { createAuditLog } from '@/lib/audit-service';
 
 // GET /api/decisions - List decisions for a tenant
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     const meetingId = searchParams.get('meetingId');
@@ -18,6 +23,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'tenantId is required' },
         { status: 400 }
+      );
+    }
+
+    verifyTenantAccess(user, tenantId);
+
+    const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
       );
     }
 
@@ -52,7 +67,8 @@ export async function GET(request: NextRequest) {
       total: decisions.length,
     });
   } catch (error) {
-    console.error('Error fetching decisions:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error fetching decisions', error);
     return NextResponse.json(
       { error: 'Failed to fetch decisions' },
       { status: 500 }
@@ -63,13 +79,13 @@ export async function GET(request: NextRequest) {
 // POST /api/decisions - Create a new decision (usually from a meeting)
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const body = await request.json();
     const {
       tenantId,
       meetingId,
       agendaItemId,
-      userId,
-      userName,
       decisionNumber,
       title,
       description,
@@ -93,6 +109,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    verifyTenantAccess(user, tenantId);
 
     // Generate decision number if not provided
     let finalDecisionNumber = decisionNumber;
@@ -127,7 +145,7 @@ export async function POST(request: NextRequest) {
       relatedDocumentIds: relatedDocumentIds || [],
       relatedDecisionIds: [],
       decidedAt: Timestamp.now(),
-      recordedBy: userId || 'unknown',
+      recordedBy: user.uid,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
@@ -140,8 +158,8 @@ export async function POST(request: NextRequest) {
       action: 'decision.recorded',
       resourceType: 'decision',
       resourceId: docRef.id,
-      actorId: userId || 'unknown',
-      actorName: userName || 'Unknown',
+      actorId: user.uid,
+      actorName: user.name || 'Unknown',
       metadata: {
         decisionNumber: finalDecisionNumber,
         title,
@@ -155,7 +173,8 @@ export async function POST(request: NextRequest) {
       ...decision,
     });
   } catch (error) {
-    console.error('Error creating decision:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error creating decision', error);
     return NextResponse.json(
       { error: 'Failed to create decision' },
       { status: 500 }

@@ -315,8 +315,8 @@ function formatFinancialDataForPrompt(data: FinancialData[]): string {
 
   // Calculate trends if multiple periods
   if (data.length >= 2) {
-    const latest = data[data.length - 1];
-    const previous = data[data.length - 2];
+    const latest = data[data.length - 1]!;
+    const previous = data[data.length - 2]!;
 
     formatted += '\n### Period-over-Period Changes\n';
     formatted += `- Revenue: ${(((latest.revenue - previous.revenue) / previous.revenue) * 100).toFixed(1)}%\n`;
@@ -536,7 +536,7 @@ export async function POST(request: NextRequest) {
       // Try to extract JSON from potential markdown code blocks
       let jsonStr = responseText;
       const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch?.[1]) {
         jsonStr = jsonMatch[1];
       }
       analysis = JSON.parse(jsonStr);

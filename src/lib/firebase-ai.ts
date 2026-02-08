@@ -251,7 +251,7 @@ export class FirebaseAIService {
         let jsonStr = responseText;
         // Strip potential markdown code fences
         const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
+        if (jsonMatch?.[1]) {
           jsonStr = jsonMatch[1];
         }
         analysis = JSON.parse(jsonStr);
@@ -339,7 +339,7 @@ Respond with JSON only (no code fences):
     try {
       let jsonStr = responseText;
       const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) jsonStr = jsonMatch[1];
+      if (jsonMatch?.[1]) jsonStr = jsonMatch[1];
       parsed = JSON.parse(jsonStr);
     } catch {
       parsed = {

@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     try {
       let jsonStr = responseText;
       const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) jsonStr = jsonMatch[1];
+      if (jsonMatch?.[1]) jsonStr = jsonMatch[1];
       analysis = JSON.parse(jsonStr);
     } catch {
       analysis = {

@@ -232,7 +232,7 @@ export default function MeetingTemplatesPage() {
   // Group standard items by category
   const itemsByCategory = STANDARD_AGENDA_ITEMS.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
+    acc[item.category]!.push(item);
     return acc;
   }, {} as Record<string, StandardAgendaItem[]>);
 

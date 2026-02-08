@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { createAuditLog, AuditActions, getRequestMetadata } from '@/lib/audit-service';
+import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { Meeting } from '@/types/schema';
 
 // GET /api/meetings - List meetings for a tenant
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     const status = searchParams.get('status');
@@ -16,6 +21,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'tenantId is required' },
         { status: 400 }
+      );
+    }
+
+    verifyTenantAccess(user, tenantId);
+
+    const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
       );
     }
 
@@ -48,7 +63,8 @@ export async function GET(request: NextRequest) {
       total: meetings.length,
     });
   } catch (error) {
-    console.error('Error fetching meetings:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error fetching meetings', error);
     return NextResponse.json(
       { error: 'Failed to fetch meetings' },
       { status: 500 }
@@ -59,6 +75,8 @@ export async function GET(request: NextRequest) {
 // POST /api/meetings - Create a new meeting
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const body = await request.json();
     const {
       tenantId,
@@ -81,6 +99,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    verifyTenantAccess(user, tenantId);
 
     // Create attendees array from IDs
     const attendees = (attendeeIds || []).map((id: string, index: number) => ({
@@ -170,8 +190,8 @@ export async function POST(request: NextRequest) {
       documentIds: [],
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-      createdBy: createdBy || 'system',
-      lastModifiedBy: createdBy || 'system',
+      createdBy: createdBy || user.uid,
+      lastModifiedBy: createdBy || user.uid,
     };
 
     const docRef = await addDoc(collections.meetings(tenantId), meeting);
@@ -184,8 +204,8 @@ export async function POST(request: NextRequest) {
         action: AuditActions.MEETING_CREATED,
         resourceType: 'meeting',
         resourceId: docRef.id,
-        actorId: createdBy || 'system',
-        actorName: 'System', // In real app, fetch user name
+        actorId: user.uid,
+        actorName: user.name || 'Unknown',
         actorIp,
         actorUserAgent,
         metadata: {
@@ -195,8 +215,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (auditError) {
-      // Log but don't fail the request if audit logging fails
-      console.error('Failed to create audit log:', auditError);
+      logger.error('Failed to create audit log', auditError, { orgId: tenantId });
     }
 
     return NextResponse.json({
@@ -204,7 +223,8 @@ export async function POST(request: NextRequest) {
       ...meeting,
     });
   } catch (error) {
-    console.error('Error creating meeting:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error creating meeting', error);
     return NextResponse.json(
       { error: 'Failed to create meeting' },
       { status: 500 }

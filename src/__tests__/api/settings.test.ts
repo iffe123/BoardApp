@@ -10,6 +10,34 @@
 
 import { NextRequest } from 'next/server';
 
+// Mock auth, rate limiting, and logging before importing routes
+jest.mock('@/lib/auth/verify-session', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { NextResponse } = require('next/server');
+  return {
+    verifySession: jest.fn().mockResolvedValue({
+      user: { uid: 'test-user-123', email: 'test@example.com', name: 'Test User', tenants: { 'tenant-1': 'admin' } },
+      token: 'mock-token',
+    }),
+    verifyTenantAccess: jest.fn(),
+    verifyTenantRole: jest.fn(),
+    authErrorResponse: jest.fn().mockImplementation((error: unknown) => {
+      const err = error as { statusCode?: number; message?: string };
+      return NextResponse.json({ error: err.message || 'Auth error' }, { status: err.statusCode || 401 });
+    }),
+    AuthError: class extends Error { statusCode: number; constructor(m: string, s: number) { super(m); this.statusCode = s; } },
+  };
+});
+
+jest.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: jest.fn().mockReturnValue({ allowed: true, remaining: 99, resetAt: Date.now() + 60000 }),
+  RateLimits: { ai: { limit: 10 }, email: { limit: 20 }, bankid: { limit: 5 }, api: { limit: 100 }, auth: { limit: 10 } },
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+}));
+
 // Mock Firebase before importing the route
 jest.mock('@/lib/firebase', () => ({
   collections: {
@@ -252,8 +280,8 @@ describe('Settings API', () => {
           action: 'settings.updated',
           resourceType: 'settings',
           resourceId: 'tenant-1',
-          actorId: 'user-1',
-          actorName: 'Admin User',
+          actorId: 'test-user-123',
+          actorName: 'Test User',
         })
       );
     });

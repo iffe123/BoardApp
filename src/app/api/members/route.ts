@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { getDocs, addDoc, getDoc, query, orderBy } from 'firebase/firestore';
+import { verifySession, verifyTenantAccess, verifyTenantRole, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { Member } from '@/types/schema';
 import { sendMemberInvitationEmail } from '@/lib/email-service';
 
@@ -9,6 +12,8 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 // GET /api/members - List members for a tenant
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     const activeOnly = searchParams.get('activeOnly') !== 'false';
@@ -18,6 +23,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'tenantId is required' },
         { status: 400 }
+      );
+    }
+
+    verifyTenantAccess(user, tenantId);
+
+    const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
       );
     }
 
@@ -51,7 +66,8 @@ export async function GET(request: NextRequest) {
       total: members.length,
     });
   } catch (error) {
-    console.error('Error fetching members:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error fetching members', error);
     return NextResponse.json(
       { error: 'Failed to fetch members' },
       { status: 500 }
@@ -62,6 +78,8 @@ export async function GET(request: NextRequest) {
 // POST /api/members - Invite a new member
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const body = await request.json();
     const {
       tenantId,
@@ -81,8 +99,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Only admins can invite members
+    verifyTenantRole(user, tenantId, ['owner', 'admin']);
+
+    // Rate limit email sending
+    const rateCheck = checkRateLimit(`email:${user.uid}`, RateLimits.email);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded for invitations. Try again later.' },
+        { status: 429 }
+      );
+    }
+
     // Set default permissions based on role
-    const getPermissions = (role: string) => {
+    const getPermissions = (memberRole: string) => {
       const permissionsByRole: Record<string, Member['permissions']> = {
         owner: {
           canCreateMeetings: true,
@@ -135,7 +165,7 @@ export async function POST(request: NextRequest) {
         },
       };
 
-      return permissionsByRole[role] || permissionsByRole.observer;
+      return (permissionsByRole[memberRole] || permissionsByRole.observer)!;
     };
 
     const member: Omit<Member, 'id'> = {
@@ -172,7 +202,7 @@ export async function POST(request: NextRequest) {
       recipientEmail: email,
       recipientName: title || '',
       organizationName,
-      inviterName: invitedBy || 'A team member',
+      inviterName: invitedBy || user.name || 'A team member',
       role: role.charAt(0).toUpperCase() + role.slice(1), // Capitalize role
       inviteUrl,
     });
@@ -185,7 +215,8 @@ export async function POST(request: NextRequest) {
       emailError: emailResult.error,
     });
   } catch (error) {
-    console.error('Error inviting member:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error inviting member', error);
     return NextResponse.json(
       { error: 'Failed to invite member' },
       { status: 500 }
