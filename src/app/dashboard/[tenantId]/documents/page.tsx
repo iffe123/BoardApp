@@ -189,8 +189,20 @@ export default function DocumentsPage() {
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || `Failed to upload ${file.name}`);
+          let errorMessage = `Failed to upload ${file.name}`;
+          try {
+            const data = await response.json();
+            errorMessage = data.error || errorMessage;
+          } catch {
+            // Response is not valid JSON (e.g., server error page)
+            const text = await response.text().catch(() => '');
+            if (response.status === 413) {
+              errorMessage = 'File is too large. Maximum size is 50MB.';
+            } else if (text) {
+              errorMessage = `Upload failed: ${response.statusText || text.substring(0, 100)}`;
+            }
+          }
+          throw new Error(errorMessage);
         }
       }
 

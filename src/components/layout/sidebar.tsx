@@ -6,10 +6,10 @@
  * Main navigation sidebar for the GovernanceOS dashboard.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Calendar,
@@ -137,9 +137,10 @@ interface OrgSwitcherProps {
   currentTenant: Tenant | null;
   tenants: Array<{ id: string; name: string }>;
   onSwitch: (tenantId: string) => void;
+  onCreate: () => void;
 }
 
-function OrgSwitcher({ currentTenant, tenants, onSwitch }: OrgSwitcherProps) {
+function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcherProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -192,7 +193,7 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch }: OrgSwitcherProps) {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
+        <DropdownMenuItem className="cursor-pointer" onClick={onCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Create Organization
         </DropdownMenuItem>
@@ -290,18 +291,55 @@ function ThemeToggle() {
 
 export function Sidebar({ tenant, className }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { tenantClaims, setCurrentTenant } = useAuth();
   const permissions = usePermissions();
 
   const tenantId = tenant?.id || '';
   const navItems = getNavItems(tenantId);
 
-  // Get list of accessible tenants
+  // Fetch tenant names from Firestore
+  const [tenantNames, setTenantNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchTenantNames = async () => {
+      const { getDoc, collections } = await import('@/lib/firebase');
+      const names: Record<string, string> = {};
+      for (const id of Object.keys(tenantClaims)) {
+        try {
+          const doc = await getDoc(collections.tenant(id));
+          if (doc.exists()) {
+            const data = doc.data();
+            names[id] = data.name || id;
+          } else {
+            names[id] = id;
+          }
+        } catch {
+          names[id] = id;
+        }
+      }
+      setTenantNames(names);
+    };
+    if (Object.keys(tenantClaims).length > 0) {
+      fetchTenantNames();
+    }
+  }, [tenantClaims]);
+
+  // Get list of accessible tenants with proper names
   const accessibleTenants = Object.entries(tenantClaims).map(([id, role]) => ({
     id,
-    name: id, // In real app, would fetch tenant names
+    name: tenantNames[id] || (tenant?.id === id ? tenant.name : id),
     role,
   }));
+
+  const handleCreateOrganization = () => {
+    router.push('/onboarding');
+  };
+
+  const handleSwitchTenant = async (newTenantId: string) => {
+    await setCurrentTenant(newTenantId);
+    router.push(`/dashboard/${newTenantId}`);
+  };
 
   const filteredNavItems = navItems.filter((item) => {
     if (!item.requiredPermission) return true;
@@ -326,7 +364,8 @@ export function Sidebar({ tenant, className }: SidebarProps) {
         <OrgSwitcher
           currentTenant={tenant}
           tenants={accessibleTenants}
-          onSwitch={setCurrentTenant}
+          onSwitch={handleSwitchTenant}
+          onCreate={handleCreateOrganization}
         />
       </div>
 

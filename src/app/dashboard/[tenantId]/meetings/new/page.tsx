@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Calendar,
-  Clock,
   MapPin,
   Video,
   Users,
@@ -32,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { TimePicker } from '@/components/ui/time-picker';
 import type { Member, AgendaItem } from '@/types/schema';
 import { Timestamp } from 'firebase/firestore';
 import {
@@ -73,15 +73,20 @@ interface FormState {
 export default function NewMeetingPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tenantId = params.tenantId as string;
+
+  // Support pre-filling from duplicate
+  const duplicateTitle = searchParams.get('title');
+  const duplicateType = searchParams.get('type') as MeetingType | null;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({
-    title: '',
+    title: duplicateTitle || '',
     description: '',
-    meetingType: 'ordinary',
+    meetingType: duplicateType || 'ordinary',
     templateId: '',
     date: '',
     startTime: '09:00',
@@ -343,23 +348,17 @@ export default function NewMeetingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="startTime">Start Time</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
+                  <Label>Start Time</Label>
+                  <TimePicker
                     value={form.startTime}
-                    onChange={(e) => updateForm({ startTime: e.target.value })}
-                    leftIcon={<Clock className="h-4 w-4" />}
+                    onChange={(value) => updateForm({ startTime: value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endTime">End Time</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
+                  <Label>End Time</Label>
+                  <TimePicker
                     value={form.endTime}
-                    onChange={(e) => updateForm({ endTime: e.target.value })}
-                    leftIcon={<Clock className="h-4 w-4" />}
+                    onChange={(value) => updateForm({ endTime: value })}
                   />
                 </div>
               </div>
