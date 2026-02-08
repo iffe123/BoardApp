@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { getDoc, updateDoc } from 'firebase/firestore';
 import { createAuditLog, AuditActions, getRequestMetadata } from '@/lib/audit-service';
+import { verifySession, verifyTenantAccess, verifyTenantRole, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { logger } from '@/lib/logger';
 import type { Tenant } from '@/types/schema';
 
 // GET /api/settings - Get tenant settings
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
 
@@ -16,6 +20,8 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    verifyTenantAccess(user, tenantId);
 
     const tenantRef = collections.tenant(tenantId);
     const tenantDoc = await getDoc(tenantRef);
@@ -34,7 +40,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ tenant });
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error fetching settings', error);
     return NextResponse.json(
       { error: 'Failed to fetch settings' },
       { status: 500 }
@@ -45,11 +52,11 @@ export async function GET(request: NextRequest) {
 // PATCH /api/settings - Update tenant settings
 export async function PATCH(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const body = await request.json();
     const {
       tenantId,
-      userId,
-      userName,
       updates,
     } = body;
 
@@ -59,6 +66,9 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Only admins can update settings
+    verifyTenantRole(user, tenantId, ['owner', 'admin']);
 
     const tenantRef = collections.tenant(tenantId);
     const tenantDoc = await getDoc(tenantRef);
@@ -118,14 +128,14 @@ export async function PATCH(request: NextRequest) {
         action: AuditActions.SETTINGS_UPDATED,
         resourceType: 'settings',
         resourceId: tenantId,
-        actorId: userId || 'unknown',
-        actorName: userName || 'Unknown User',
+        actorId: user.uid,
+        actorName: user.name || 'Unknown',
         actorIp,
         actorUserAgent,
         changes,
       });
     } catch (auditError) {
-      console.error('Failed to create audit log:', auditError);
+      logger.error('Failed to create audit log', auditError, { orgId: tenantId });
     }
 
     // Fetch updated tenant
@@ -137,7 +147,8 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ tenant });
   } catch (error) {
-    console.error('Error updating settings:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error updating settings', error);
     return NextResponse.json(
       { error: 'Failed to update settings' },
       { status: 500 }

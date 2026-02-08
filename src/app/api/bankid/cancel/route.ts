@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const signatureDoc = snapshot.docs[0];
+    const signatureDoc = snapshot.docs[0]!;
     const signatureData = signatureDoc.data();
 
     // Only cancel if pending

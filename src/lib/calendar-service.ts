@@ -267,7 +267,7 @@ END:STANDARD`,
     },
   };
 
-  const tz = timezones[timezone] || timezones['UTC'];
+  const tz = (timezones[timezone] || timezones['UTC'])!;
 
   let vtimezone = `BEGIN:VTIMEZONE
 TZID:${timezone}

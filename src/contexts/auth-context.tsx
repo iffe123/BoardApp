@@ -267,7 +267,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setCurrentTenantId(savedTenantId);
           setCurrentTenantState(tenant);
         } else if (tenantIds.length > 0) {
-          const firstTenantId = tenantIds[0];
+          const firstTenantId = tenantIds[0]!;
           const tenant = await fetchTenant(firstTenantId);
           setCurrentTenantId(firstTenantId);
           setCurrentTenantState(tenant);

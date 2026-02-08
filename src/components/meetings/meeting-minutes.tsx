@@ -88,7 +88,7 @@ function getStatusConfig(status: string): { label: string; color: string; icon: 
       icon: <Send className="h-3 w-3" />,
     },
   };
-  return configs[status] || configs.draft;
+  return (configs[status] || configs.draft)!;
 }
 
 // ============================================================================

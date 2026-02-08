@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { addDoc } from 'firebase/firestore';
 import { createAuditLog } from '@/lib/audit-service';
+import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 
 // BankID Configuration
@@ -76,23 +79,34 @@ async function realBankIDSign(
 // POST /api/bankid/sign - Initiate signing
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
+    // Rate limit BankID endpoints strictly
+    const rateCheck = checkRateLimit(`bankid:${user.uid}`, RateLimits.bankid);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Too many signing requests. Please wait before trying again.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const {
       tenantId,
-      userId,
-      userName,
       documentId,
       documentType, // 'minutes' | 'document' | 'decision'
       personalNumber,
       userVisibleData,
     } = body;
 
-    if (!tenantId || !userId || !documentId || !userVisibleData) {
+    if (!tenantId || !documentId || !userVisibleData) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
+
+    verifyTenantAccess(user, tenantId);
 
     // Get client IP for BankID
     const forwarded = request.headers.get('x-forwarded-for');
@@ -109,8 +123,8 @@ export async function POST(request: NextRequest) {
     // Store pending signature in Firestore
     const signatureRecord = {
       tenantId,
-      userId,
-      userName,
+      userId: user.uid,
+      userName: user.name || 'Unknown',
       documentId,
       documentType,
       orderRef: signResult.orderRef,
@@ -131,14 +145,21 @@ export async function POST(request: NextRequest) {
       action: 'signature.initiated',
       resourceType: 'document',
       resourceId: documentId,
-      actorId: userId,
-      actorName: userName || 'Unknown',
+      actorId: user.uid,
+      actorName: user.name || 'Unknown',
       metadata: {
         signatureId: signatureRef.id,
         orderRef: signResult.orderRef,
         documentType,
         isMock: USE_MOCK,
       },
+    });
+
+    logger.info('BankID signing initiated', {
+      userId: user.uid,
+      orgId: tenantId,
+      action: 'bankid.sign',
+      metadata: { documentId, documentType, isMock: USE_MOCK },
     });
 
     return NextResponse.json({
@@ -150,7 +171,8 @@ export async function POST(request: NextRequest) {
       qrStartUrl: USE_MOCK ? null : `bankid:///?autostarttoken=${signResult.autoStartToken}&redirect=null`,
     });
   } catch (error) {
-    console.error('BankID sign error:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('BankID sign error', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to initiate signing' },
       { status: 500 }

@@ -142,7 +142,7 @@ export default function FinancialsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('2024-01');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const currentPeriod = mockFinancialPeriods[0];
+  const currentPeriod = mockFinancialPeriods[0]!;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

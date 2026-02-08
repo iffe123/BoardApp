@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
       // Handle potential markdown code blocks
       let jsonStr = responseText;
       const jsonMatch = jsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch?.[1]) {
         jsonStr = jsonMatch[1];
       }
       result = JSON.parse(jsonStr);

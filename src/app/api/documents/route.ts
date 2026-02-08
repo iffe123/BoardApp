@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collections, Timestamp } from '@/lib/firebase';
 import { getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 import type { Document } from '@/types/schema';
 
 // GET /api/documents - List documents for a tenant
 export async function GET(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     const category = searchParams.get('category');
@@ -16,6 +21,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'tenantId is required' },
         { status: 400 }
+      );
+    }
+
+    verifyTenantAccess(user, tenantId);
+
+    const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        { status: 429 }
       );
     }
 
@@ -50,7 +65,8 @@ export async function GET(request: NextRequest) {
       total: documents.length,
     });
   } catch (error) {
-    console.error('Error fetching documents:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error fetching documents', error);
     return NextResponse.json(
       { error: 'Failed to fetch documents' },
       { status: 500 }
@@ -61,6 +77,8 @@ export async function GET(request: NextRequest) {
 // POST /api/documents - Create a new document record
 export async function POST(request: NextRequest) {
   try {
+    const { user } = await verifySession(request);
+
     const body = await request.json();
     const {
       tenantId,
@@ -84,6 +102,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    verifyTenantAccess(user, tenantId);
+
     const document: Omit<Document, 'id'> = {
       tenantId,
       name,
@@ -99,7 +119,7 @@ export async function POST(request: NextRequest) {
       tags: tags || [],
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-      uploadedBy: uploadedBy || 'system',
+      uploadedBy: uploadedBy || user.uid,
       isArchived: false,
     };
 
@@ -110,7 +130,8 @@ export async function POST(request: NextRequest) {
       ...document,
     });
   } catch (error) {
-    console.error('Error creating document:', error);
+    if (error instanceof AuthError) return authErrorResponse(error);
+    logger.error('Error creating document', error);
     return NextResponse.json(
       { error: 'Failed to create document' },
       { status: 500 }

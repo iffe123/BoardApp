@@ -541,7 +541,7 @@ export async function sendBulkMeetingInvitations(
       const error = result.status === 'rejected'
         ? result.reason
         : result.value.error;
-      errors.push(`${attendees[index].email}: ${error}`);
+      errors.push(`${attendees[index]?.email}: ${error}`);
     }
   });
 

@@ -776,26 +776,26 @@ export function getGroupedStandardItems(): Record<string, StandardAgendaItem[]> 
   for (const item of STANDARD_AGENDA_ITEMS) {
     switch (item.category) {
       case 'formality':
-        groups['Opening & Closing'].push(item);
+        groups['Opening & Closing']!.push(item);
         break;
       case 'governance':
-        groups['Governance'].push(item);
+        groups['Governance']!.push(item);
         break;
       case 'financial':
-        groups['Financial'].push(item);
+        groups['Financial']!.push(item);
         break;
       case 'strategic':
-        groups['Strategic'].push(item);
+        groups['Strategic']!.push(item);
         break;
       case 'operational':
-        groups['Operational'].push(item);
+        groups['Operational']!.push(item);
         break;
     }
   }
 
   // Sort items within each group
   for (const key of Object.keys(groups)) {
-    groups[key].sort((a, b) => a.sortOrder - b.sortOrder);
+    groups[key]!.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   return groups;

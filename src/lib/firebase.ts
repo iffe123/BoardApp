@@ -91,7 +91,7 @@ function initializeFirebase() {
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
   } else {
-    app = getApps()[0];
+    app = getApps()[0]!;
   }
 
   auth = getAuth(app);
