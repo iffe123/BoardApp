@@ -27,6 +27,7 @@ import {
   Briefcase,
   Sun,
   Moon,
+  CircleDot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,11 @@ const getNavItems = (tenantId: string): NavItem[] => [
     href: `/dashboard/${tenantId}/financials`,
     icon: <BarChart3 className="h-5 w-5" />,
     requiredPermission: 'canViewFinancials',
+  },
+  {
+    label: 'Årshjul',
+    href: `/dashboard/${tenantId}/annual-planner`,
+    icon: <CircleDot className="h-5 w-5" />,
   },
   {
     label: 'Decisions',
