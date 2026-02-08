@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,8 @@ interface ErrorProps {
 }
 
 export default function DashboardError({ error, reset }: ErrorProps) {
+  const router = useRouter();
+
   useEffect(() => {
     console.error('Dashboard error:', error);
   }, [error]);
@@ -42,11 +44,9 @@ export default function DashboardError({ error, reset }: ErrorProps) {
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
-            <Button variant="outline" asChild className="w-full">
-              <Link href="javascript:history.back()">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Go Back
-              </Link>
+            <Button variant="outline" className="w-full" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
             </Button>
           </div>
         </CardContent>

@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Building2,
   Users,
@@ -95,9 +96,11 @@ function ClientCard({ client, onSelect, viewMode }: ClientCardProps) {
         {/* Logo */}
         <div className="shrink-0">
           {client.tenant.logoUrl ? (
-            <img
+            <Image
               src={client.tenant.logoUrl}
               alt={client.tenant.name}
+              width={48}
+              height={48}
               className="h-12 w-12 rounded-lg object-cover"
             />
           ) : (
@@ -166,9 +169,11 @@ function ClientCard({ client, onSelect, viewMode }: ClientCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {client.tenant.logoUrl ? (
-              <img
+              <Image
                 src={client.tenant.logoUrl}
                 alt={client.tenant.name}
+                width={40}
+                height={40}
                 className="h-10 w-10 rounded-lg object-cover"
               />
             ) : (
