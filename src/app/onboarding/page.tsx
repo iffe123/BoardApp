@@ -10,7 +10,7 @@ import type { Tenant, Member } from '@/types/schema';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, currentTenantId, tenantClaims } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   const [step, setStep] = useState(1);
   const [orgName, setOrgName] = useState('');
@@ -18,20 +18,12 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect if already has a tenant
+  // Redirect if not authenticated
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        router.push('/auth/login');
-        return;
-      }
-
-      // If user already has tenants, redirect to dashboard
-      if (Object.keys(tenantClaims).length > 0 && currentTenantId) {
-        router.push(`/dashboard/${currentTenantId}`);
-      }
+    if (!isLoading && !isAuthenticated) {
+      router.push('/auth/login');
     }
-  }, [isAuthenticated, isLoading, tenantClaims, currentTenantId, router]);
+  }, [isAuthenticated, isLoading, router]);
 
   const handleCreateOrganization = async () => {
     if (!orgName.trim()) {

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Calendar,
@@ -17,7 +17,6 @@ import {
   XCircle,
   MoreVertical,
   Download,
-  Share,
   Trash2,
   Copy,
   Sparkles,
@@ -41,6 +40,7 @@ import {
 } from '@/components/ui/tabs';
 import { AgendaBuilder } from '@/components/meetings/agenda-builder';
 import { MeetingMinutesEditor } from '@/components/meetings/meeting-minutes';
+import { CalendarActions } from '@/components/meetings/calendar-actions';
 import { cn, formatDate, formatDuration, getMeetingStatusColor } from '@/lib/utils';
 import type { Meeting, Member } from '@/types/schema';
 import { Timestamp } from 'firebase/firestore';
@@ -123,6 +123,7 @@ function getResponseIcon(response: string) {
 
 export default function MeetingDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const tenantId = params.tenantId as string;
   const meetingId = params.meetingId as string;
 
@@ -151,6 +152,25 @@ export default function MeetingDetailPage() {
 
   const handleAgendaUpdate = (items: typeof meeting.agendaItems) => {
     setMeeting({ ...meeting, agendaItems: items });
+  };
+
+  const handleDuplicateMeeting = () => {
+    // Navigate to new meeting page with duplicated data as query params
+    const params = new URLSearchParams({
+      duplicate: meeting.id,
+      title: `${meeting.title} (Copy)`,
+      type: meeting.meetingType,
+    });
+    router.push(`/dashboard/${tenantId}/meetings/new?${params.toString()}`);
+  };
+
+  const handleCancelMeeting = () => {
+    setMeeting({ ...meeting, status: 'cancelled' });
+  };
+
+  const handleExportPDF = async () => {
+    // Trigger browser print as a simple PDF export
+    window.print();
   };
 
   return (
@@ -198,12 +218,33 @@ export default function MeetingDetailPage() {
               </Button>
             )}
             {(meeting.status === 'draft' || meeting.status === 'scheduled') && (
-              <Link href={`/dashboard/${tenantId}/meetings/${meetingId}/edit`}>
-                <Button variant="outline">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab('agenda')}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+            {(meeting.status === 'scheduled' || meeting.status === 'draft') && (
+              <CalendarActions
+                meeting={{
+                  id: meeting.id,
+                  tenantId: meeting.tenantId,
+                  title: meeting.title,
+                  description: meeting.description,
+                  meetingType: meeting.meetingType,
+                  scheduledStart: meeting.scheduledStart.toDate(),
+                  scheduledEnd: meeting.scheduledEnd.toDate(),
+                  timezone: meeting.timezone,
+                  location: meeting.location,
+                  attendees: meeting.attendees.map((a) => ({
+                    name: a.displayName,
+                    role: a.role,
+                  })),
+                }}
+                meetingUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/${tenantId}/meetings/${meetingId}`}
+              />
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -212,23 +253,23 @@ export default function MeetingDetailPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDuplicateMeeting}>
                   <Copy className="h-4 w-4 mr-2" />
                   Duplicate Meeting
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Share className="h-4 w-4 mr-2" />
-                  Share
-                </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
                   <Download className="h-4 w-4 mr-2" />
                   Export PDF
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Cancel Meeting
-                </DropdownMenuItem>
+                {meeting.status !== 'cancelled' && meeting.status !== 'completed' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleCancelMeeting} className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Cancel Meeting
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
