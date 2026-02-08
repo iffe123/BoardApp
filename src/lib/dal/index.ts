@@ -7,3 +7,5 @@
 export { meetingsDAL } from './meetings';
 export { documentsDAL } from './documents';
 export { membersDAL } from './members';
+export { shareholdersDAL } from './shareholders';
+export { sharesDAL, shareTransactionsDAL, computeCapTable } from './shares';

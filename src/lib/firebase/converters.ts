@@ -25,6 +25,9 @@ import type {
   Decision,
   MeetingTemplate,
   AuditLog,
+  Shareholder,
+  ShareEntry,
+  ShareTransaction,
 } from '@/types/schema';
 
 /**
@@ -52,3 +55,6 @@ export const financialConverter = createConverter<FinancialPeriod>();
 export const decisionConverter = createConverter<Decision>();
 export const templateConverter = createConverter<MeetingTemplate>();
 export const auditLogConverter = createConverter<AuditLog>();
+export const shareholderConverter = createConverter<Shareholder>();
+export const shareEntryConverter = createConverter<ShareEntry>();
+export const shareTransactionConverter = createConverter<ShareTransaction>();

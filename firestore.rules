@@ -264,6 +264,36 @@ service cloud.firestore {
       }
 
       // -----------------------------------------------------------------------
+      // SHAREHOLDERS SUB-COLLECTION (Aktiebok)
+      // -----------------------------------------------------------------------
+
+      match /shareholders/{shareholderId} {
+        allow read: if hasTenantAccess(tenantId);
+        allow create, update: if isOrgAdmin(tenantId);
+        allow delete: if isOrgOwner(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // SHARES SUB-COLLECTION (Aktiebok)
+      // -----------------------------------------------------------------------
+
+      match /shares/{shareId} {
+        allow read: if hasTenantAccess(tenantId);
+        allow write: if isOrgAdmin(tenantId);
+      }
+
+      // -----------------------------------------------------------------------
+      // SHARE TRANSACTIONS SUB-COLLECTION (Aktiebok)
+      // -----------------------------------------------------------------------
+
+      match /share_transactions/{transactionId} {
+        allow read: if hasTenantAccess(tenantId);
+        allow create: if isOrgAdmin(tenantId);
+        // Transactions are immutable for audit trail
+        allow update, delete: if false;
+      }
+
+      // -----------------------------------------------------------------------
       // NOTIFICATIONS SUB-COLLECTION
       // -----------------------------------------------------------------------
 
