@@ -23,6 +23,12 @@ const serverEnvSchema = z.object({
   FORTNOX_CLIENT_ID: z.string().optional(),
   FORTNOX_CLIENT_SECRET: z.string().optional(),
 
+  // Calendar Integrations
+  MICROSOFT_CLIENT_ID: z.string().optional(),
+  MICROSOFT_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
   // Resend (email)
   RESEND_API_KEY: z.string().optional(),
 

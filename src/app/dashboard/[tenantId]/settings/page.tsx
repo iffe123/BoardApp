@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   Building2,
   CreditCard,
@@ -12,6 +12,9 @@ import {
   ExternalLink,
   Check,
   Loader2,
+  Unplug,
+  Calendar,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +74,220 @@ export default function SettingsPage() {
 
   // Compliance
   const [documentRetentionYears, setDocumentRetentionYears] = useState('7');
+
+  // Calendar connections
+  const [microsoftStatus, setMicrosoftStatus] = useState<'disconnected' | 'active' | 'error' | 'loading'>('loading');
+  const [microsoftEmail, setMicrosoftEmail] = useState<string | null>(null);
+  const [microsoftConnecting, setMicrosoftConnecting] = useState(false);
+  const [microsoftDisconnecting, setMicrosoftDisconnecting] = useState(false);
+
+  const [googleStatus, setGoogleStatus] = useState<'disconnected' | 'active' | 'error' | 'loading'>('loading');
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+  const [googleDisconnecting, setGoogleDisconnecting] = useState(false);
+
+  const [calendarMessage, setCalendarMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Check URL params for integration success/error messages
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const urlError = searchParams.get('error');
+    if (success) {
+      setCalendarMessage({ type: 'success', text: success });
+      setTimeout(() => setCalendarMessage(null), 5000);
+    }
+    if (urlError) {
+      setCalendarMessage({ type: 'error', text: urlError });
+      setTimeout(() => setCalendarMessage(null), 8000);
+    }
+  }, [searchParams]);
+
+  // Fetch calendar connection status
+  const fetchCalendarStatus = useCallback(async () => {
+    if (!tenantId) return;
+
+    try {
+      const response = await fetch(`/api/integrations/calendar/status?tenantId=${tenantId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.microsoft) {
+          setMicrosoftStatus(data.microsoft.status === 'active' ? 'active' : 'disconnected');
+          setMicrosoftEmail(data.microsoft.accountEmail || null);
+        } else {
+          setMicrosoftStatus('disconnected');
+        }
+        if (data.google) {
+          setGoogleStatus(data.google.status === 'active' ? 'active' : 'disconnected');
+          setGoogleEmail(data.google.accountEmail || null);
+        } else {
+          setGoogleStatus('disconnected');
+        }
+      } else {
+        setMicrosoftStatus('disconnected');
+        setGoogleStatus('disconnected');
+      }
+    } catch {
+      setMicrosoftStatus('disconnected');
+      setGoogleStatus('disconnected');
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchCalendarStatus();
+  }, [fetchCalendarStatus]);
+
+  // Microsoft 365 connect handler
+  const handleMicrosoftConnect = async () => {
+    setMicrosoftConnecting(true);
+    setCalendarMessage(null);
+    try {
+      const response = await fetch('/api/integrations/microsoft/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          userId: user?.uid,
+          userName: userProfile?.displayName || user?.displayName || 'Unknown',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to connect Microsoft 365');
+      }
+
+      if (data.authUrl) {
+        // Redirect to Microsoft OAuth
+        window.location.href = data.authUrl;
+        return;
+      }
+
+      // Mock mode - connection established directly
+      setMicrosoftStatus('active');
+      setMicrosoftEmail(data.isMock ? 'board@example.com (mock)' : null);
+      setCalendarMessage({ type: 'success', text: 'Microsoft 365 connected successfully' });
+      setTimeout(() => setCalendarMessage(null), 5000);
+    } catch (err) {
+      setCalendarMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to connect Microsoft 365',
+      });
+    } finally {
+      setMicrosoftConnecting(false);
+    }
+  };
+
+  // Microsoft 365 disconnect handler
+  const handleMicrosoftDisconnect = async () => {
+    setMicrosoftDisconnecting(true);
+    setCalendarMessage(null);
+    try {
+      const response = await fetch('/api/integrations/microsoft/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          userId: user?.uid,
+          userName: userProfile?.displayName || user?.displayName || 'Unknown',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to disconnect Microsoft 365');
+      }
+
+      setMicrosoftStatus('disconnected');
+      setMicrosoftEmail(null);
+      setCalendarMessage({ type: 'success', text: 'Microsoft 365 disconnected' });
+      setTimeout(() => setCalendarMessage(null), 5000);
+    } catch (err) {
+      setCalendarMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to disconnect Microsoft 365',
+      });
+    } finally {
+      setMicrosoftDisconnecting(false);
+    }
+  };
+
+  // Google Workspace connect handler
+  const handleGoogleConnect = async () => {
+    setGoogleConnecting(true);
+    setCalendarMessage(null);
+    try {
+      const response = await fetch('/api/integrations/google/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          userId: user?.uid,
+          userName: userProfile?.displayName || user?.displayName || 'Unknown',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to connect Google Workspace');
+      }
+
+      if (data.authUrl) {
+        // Redirect to Google OAuth
+        window.location.href = data.authUrl;
+        return;
+      }
+
+      // Mock mode - connection established directly
+      setGoogleStatus('active');
+      setGoogleEmail(data.isMock ? 'board@example.com (mock)' : null);
+      setCalendarMessage({ type: 'success', text: 'Google Workspace connected successfully' });
+      setTimeout(() => setCalendarMessage(null), 5000);
+    } catch (err) {
+      setCalendarMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to connect Google Workspace',
+      });
+    } finally {
+      setGoogleConnecting(false);
+    }
+  };
+
+  // Google Workspace disconnect handler
+  const handleGoogleDisconnect = async () => {
+    setGoogleDisconnecting(true);
+    setCalendarMessage(null);
+    try {
+      const response = await fetch('/api/integrations/google/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          userId: user?.uid,
+          userName: userProfile?.displayName || user?.displayName || 'Unknown',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to disconnect Google Workspace');
+      }
+
+      setGoogleStatus('disconnected');
+      setGoogleEmail(null);
+      setCalendarMessage({ type: 'success', text: 'Google Workspace disconnected' });
+      setTimeout(() => setCalendarMessage(null), 5000);
+    } catch (err) {
+      setCalendarMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to disconnect Google Workspace',
+      });
+    } finally {
+      setGoogleDisconnecting(false);
+    }
+  };
 
   // Load settings
   useEffect(() => {
@@ -555,10 +772,26 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Calendar Integration</CardTitle>
                 <CardDescription>
-                  Sync meetings with external calendars
+                  Sync meetings with external calendars. New meetings will automatically appear in the connected calendar.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {calendarMessage && (
+                  <div className={`p-3 rounded-md text-sm flex items-center gap-2 ${
+                    calendarMessage.type === 'success'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-destructive/10 text-destructive'
+                  }`}>
+                    {calendarMessage.type === 'success' ? (
+                      <Check className="h-4 w-4 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    )}
+                    {calendarMessage.text}
+                  </div>
+                )}
+
+                {/* Microsoft 365 / Outlook */}
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-blue-100 flex items-center justify-center">
@@ -567,13 +800,54 @@ export default function SettingsPage() {
                     <div>
                       <p className="font-medium">Microsoft 365</p>
                       <p className="text-sm text-muted-foreground">
-                        Sync with Outlook calendars
+                        {microsoftStatus === 'active' && microsoftEmail
+                          ? `Connected as ${microsoftEmail}`
+                          : 'Sync with Outlook calendars'}
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">Connect</Button>
+                  <div className="flex items-center gap-2">
+                    {microsoftStatus === 'active' ? (
+                      <>
+                        <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
+                          <Check className="h-3 w-3" />
+                          Connected
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleMicrosoftDisconnect}
+                          disabled={microsoftDisconnecting}
+                        >
+                          {microsoftDisconnecting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Unplug className="h-4 w-4" />
+                          )}
+                          <span className="ml-1">Disconnect</span>
+                        </Button>
+                      </>
+                    ) : microsoftStatus === 'loading' ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMicrosoftConnect}
+                        disabled={microsoftConnecting}
+                      >
+                        {microsoftConnecting ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Calendar className="h-4 w-4 mr-1" />
+                        )}
+                        Connect
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Google Workspace */}
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-red-100 flex items-center justify-center">
@@ -582,11 +856,51 @@ export default function SettingsPage() {
                     <div>
                       <p className="font-medium">Google Workspace</p>
                       <p className="text-sm text-muted-foreground">
-                        Sync with Google Calendar
+                        {googleStatus === 'active' && googleEmail
+                          ? `Connected as ${googleEmail}`
+                          : 'Sync with Google Calendar'}
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">Connect</Button>
+                  <div className="flex items-center gap-2">
+                    {googleStatus === 'active' ? (
+                      <>
+                        <Badge variant="outline" className="bg-green-100 text-green-800 gap-1">
+                          <Check className="h-3 w-3" />
+                          Connected
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGoogleDisconnect}
+                          disabled={googleDisconnecting}
+                        >
+                          {googleDisconnecting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Unplug className="h-4 w-4" />
+                          )}
+                          <span className="ml-1">Disconnect</span>
+                        </Button>
+                      </>
+                    ) : googleStatus === 'loading' ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGoogleConnect}
+                        disabled={googleConnecting}
+                      >
+                        {googleConnecting ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Calendar className="h-4 w-4 mr-1" />
+                        )}
+                        Connect
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
