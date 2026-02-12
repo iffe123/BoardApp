@@ -21,6 +21,14 @@ import {
   Timestamp,
 } from '@/lib/firebase';
 import type { Meeting, Document, Member, FinancialPeriod, Decision } from '@/types/schema';
+import {
+  isDemoTenant,
+  demoMeetings,
+  demoDocuments,
+  demoMembers,
+  demoFinancials,
+  demoDecisions,
+} from '@/lib/demo-data';
 
 // ============================================================================
 // MEETINGS HOOKS
@@ -31,6 +39,14 @@ export function useMeetings(tenantId: string | null, status?: string) {
     queryKey: ['meetings', tenantId, status],
     queryFn: async () => {
       if (!tenantId) return [];
+
+      if (isDemoTenant(tenantId)) {
+        let meetings = [...demoMeetings];
+        if (status && status !== 'all') {
+          meetings = meetings.filter((m) => m.status === status);
+        }
+        return meetings;
+      }
 
       const meetingsRef = collections.meetings(tenantId);
       let q = query(meetingsRef, orderBy('scheduledStart', 'desc'));
@@ -54,6 +70,10 @@ export function useMeeting(tenantId: string | null, meetingId: string | null) {
     queryKey: ['meeting', tenantId, meetingId],
     queryFn: async () => {
       if (!tenantId || !meetingId) return null;
+
+      if (isDemoTenant(tenantId)) {
+        return demoMeetings.find((m) => m.id === meetingId) || null;
+      }
 
       const docRef = collections.meeting(tenantId, meetingId);
       const docSnap = await getDoc(docRef);
@@ -123,6 +143,14 @@ export function useDocuments(tenantId: string | null, category?: string) {
     queryFn: async () => {
       if (!tenantId) return [];
 
+      if (isDemoTenant(tenantId)) {
+        let documents = demoDocuments.filter((d) => !d.isArchived);
+        if (category && category !== 'all') {
+          documents = documents.filter((d) => d.category === category);
+        }
+        return documents;
+      }
+
       const docsRef = collections.documents(tenantId);
       const q = query(docsRef, where('isArchived', '==', false), orderBy('createdAt', 'desc'));
 
@@ -176,6 +204,14 @@ export function useMembers(tenantId: string | null, activeOnly = true) {
     queryFn: async () => {
       if (!tenantId) return [];
 
+      if (isDemoTenant(tenantId)) {
+        let members = [...demoMembers];
+        if (activeOnly) {
+          members = members.filter((m) => m.isActive);
+        }
+        return members;
+      }
+
       const membersRef = collections.members(tenantId);
       const q = query(membersRef, orderBy('joinedAt', 'desc'));
 
@@ -228,6 +264,14 @@ export function useFinancials(tenantId: string | null, periodType?: string) {
     queryFn: async () => {
       if (!tenantId) return [];
 
+      if (isDemoTenant(tenantId)) {
+        let periods = [...demoFinancials];
+        if (periodType && periodType !== 'all') {
+          periods = periods.filter((p) => p.periodType === periodType);
+        }
+        return periods;
+      }
+
       const financialsRef = collections.financials(tenantId);
       const q = query(financialsRef, orderBy('period', 'desc'));
 
@@ -256,6 +300,14 @@ export function useDecisions(tenantId: string | null, outcome?: string) {
     queryKey: ['decisions', tenantId, outcome],
     queryFn: async () => {
       if (!tenantId) return [];
+
+      if (isDemoTenant(tenantId)) {
+        let decisions = [...demoDecisions];
+        if (outcome && outcome !== 'all') {
+          decisions = decisions.filter((d) => d.outcome === outcome);
+        }
+        return decisions;
+      }
 
       const decisionsRef = collections.decisions(tenantId);
       const q = query(decisionsRef, orderBy('decidedAt', 'desc'));
@@ -287,6 +339,14 @@ export function useRealtimeMeeting(tenantId: string | null, meetingId: string | 
 
   useEffect(() => {
     if (!tenantId || !meetingId) {
+      setLoading(false);
+      return;
+    }
+
+    // Demo tenant: return static data, no real-time subscription
+    if (isDemoTenant(tenantId)) {
+      const found = demoMeetings.find((m) => m.id === meetingId) || null;
+      setMeeting(found);
       setLoading(false);
       return;
     }

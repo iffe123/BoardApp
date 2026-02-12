@@ -29,6 +29,7 @@ import {
   Moon,
   CircleDot,
   BookOpen,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ import {
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import type { Tenant } from '@/types/schema';
+import { DEMO_TENANT_ID, demoTenant, isDemoTenant } from '@/lib/demo-data';
 
 // ============================================================================
 // TYPES
@@ -153,6 +155,8 @@ interface OrgSwitcherProps {
 }
 
 function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcherProps) {
+  const isDemo = isDemoTenant(currentTenant?.id ?? null);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -161,7 +165,11 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcher
           className="w-full justify-between px-3 py-6 h-auto"
         >
           <div className="flex items-center gap-3">
-            {currentTenant?.logoUrl ? (
+            {isDemo ? (
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-amber-500 text-white">
+                <FlaskConical className="h-4 w-4" />
+              </div>
+            ) : currentTenant?.logoUrl ? (
               <Image
                 src={currentTenant.logoUrl}
                 alt={currentTenant.name}
@@ -175,9 +183,16 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcher
               </div>
             )}
             <div className="text-left">
-              <p className="font-medium truncate max-w-[140px]">
-                {currentTenant?.name || 'Select Organization'}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="font-medium truncate max-w-[120px]">
+                  {currentTenant?.name || 'Select Organization'}
+                </p>
+                {isDemo && (
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                    DEMO
+                  </span>
+                )}
+              </div>
               {currentTenant?.organizationNumber && (
                 <p className="text-xs text-muted-foreground">
                   {currentTenant.organizationNumber}
@@ -191,19 +206,38 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcher
       <DropdownMenuContent className="w-56" align="start">
         <DropdownMenuLabel>Organizations</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {tenants.map((tenant) => (
-          <DropdownMenuItem
-            key={tenant.id}
-            onClick={() => onSwitch(tenant.id)}
-            className={cn(
-              'cursor-pointer',
-              tenant.id === currentTenant?.id && 'bg-muted'
-            )}
-          >
-            <Building2 className="h-4 w-4 mr-2" />
-            {tenant.name}
-          </DropdownMenuItem>
-        ))}
+        {tenants
+          .filter((t) => !isDemoTenant(t.id))
+          .map((tenant) => (
+            <DropdownMenuItem
+              key={tenant.id}
+              onClick={() => onSwitch(tenant.id)}
+              className={cn(
+                'cursor-pointer',
+                tenant.id === currentTenant?.id && 'bg-muted'
+              )}
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              {tenant.name}
+            </DropdownMenuItem>
+          ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+          Test Environment
+        </DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() => onSwitch(DEMO_TENANT_ID)}
+          className={cn(
+            'cursor-pointer',
+            isDemo && 'bg-muted'
+          )}
+        >
+          <FlaskConical className="h-4 w-4 mr-2 text-amber-500" />
+          <span>{demoTenant.name}</span>
+          <span className="ml-auto inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+            DEMO
+          </span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={onCreate}>
           <Plus className="h-4 w-4 mr-2" />
