@@ -26,6 +26,7 @@ import {
   Timestamp,
 } from '@/lib/firebase';
 import type { User as UserProfile, MemberRole, Tenant } from '@/types/schema';
+import { DEMO_TENANT_ID, demoTenant, isDemoTenant } from '@/lib/demo-data';
 
 // ============================================================================
 // TYPES
@@ -218,6 +219,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Set current tenant
   const setCurrentTenant = useCallback(async (tenantId: string) => {
+    // Handle demo tenant without Firestore
+    if (isDemoTenant(tenantId)) {
+      setCurrentTenantId(DEMO_TENANT_ID);
+      setCurrentTenantState(demoTenant);
+      localStorage.setItem('governanceos_current_tenant', DEMO_TENANT_ID);
+      return;
+    }
+
     // If tenant isn't in claims yet, try refreshing from Firestore
     let claims = tenantClaims;
     if (!claims[tenantId]) {
@@ -240,11 +249,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check tenant access
   const hasAccessToTenant = useCallback((tenantId: string): boolean => {
+    if (isDemoTenant(tenantId)) return true;
     return tenantId in tenantClaims;
   }, [tenantClaims]);
 
   // Get tenant role
   const getTenantRole = useCallback((tenantId: string): MemberRole | null => {
+    if (isDemoTenant(tenantId)) return 'owner';
     return tenantClaims[tenantId] || null;
   }, [tenantClaims]);
 
@@ -297,7 +308,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const savedTenantId = localStorage.getItem('governanceos_current_tenant');
         const tenantIds = Object.keys(claims);
 
-        if (savedTenantId && claims[savedTenantId]) {
+        if (savedTenantId && isDemoTenant(savedTenantId)) {
+          setCurrentTenantId(DEMO_TENANT_ID);
+          setCurrentTenantState(demoTenant);
+        } else if (savedTenantId && claims[savedTenantId]) {
           const tenant = await fetchTenant(savedTenantId);
           setCurrentTenantId(savedTenantId);
           setCurrentTenantState(tenant);
@@ -407,7 +421,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [userProfile]);
 
-  const currentTenantRole = currentTenantId ? tenantClaims[currentTenantId] || null : null;
+  const currentTenantRole = currentTenantId
+    ? isDemoTenant(currentTenantId) ? 'owner' as MemberRole : tenantClaims[currentTenantId] || null
+    : null;
 
   const value: AuthContextValue = {
     user,

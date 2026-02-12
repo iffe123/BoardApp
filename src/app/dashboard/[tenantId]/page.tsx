@@ -20,73 +20,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { formatRelativeDate, formatCurrency } from '@/lib/utils';
+import { useMeetings, useDocuments, useDecisions } from '@/hooks/use-firestore';
+import { isDemoTenant, demoFinancials } from '@/lib/demo-data';
 
-// Mock data for demonstration - in real app this would come from API/Firestore
-const mockStats = {
-  upcomingMeetings: 3,
-  pendingSignatures: 5,
-  openActionItems: 12,
-  documentsThisMonth: 8,
-};
-
-const mockUpcomingMeetings = [
-  {
-    id: '1',
-    title: 'Q4 Board Meeting',
-    scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    status: 'scheduled',
-    type: 'board',
-  },
-  {
-    id: '2',
-    title: 'Audit Committee',
-    scheduledAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-    status: 'scheduled',
-    type: 'committee',
-  },
-  {
-    id: '3',
-    title: 'Annual General Meeting',
-    scheduledAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    status: 'scheduled',
-    type: 'general',
-  },
-];
-
-const mockRecentActivity = [
-  {
-    id: '1',
-    type: 'signature',
-    message: 'Meeting minutes signed by Johan Lindqvist',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-  },
-  {
-    id: '2',
-    type: 'document',
-    message: 'Q3 Financial Report uploaded',
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-  },
-  {
-    id: '3',
-    type: 'meeting',
-    message: 'Board Meeting minutes approved',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '4',
-    type: 'action',
-    message: 'Action item completed: Review budget proposal',
-    timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
-  },
-];
-
-const mockFinancialSnapshot = {
-  revenue: 12500000,
-  revenueChange: 8.5,
-  netIncome: 1850000,
-  netIncomeChange: -2.3,
-  cashBalance: 4200000,
-  cashChange: 15.2,
+const emptyFinancialSnapshot = {
+  revenue: 0,
+  revenueChange: 0,
+  netIncome: 0,
+  netIncomeChange: 0,
+  cashBalance: 0,
+  cashChange: 0,
 };
 
 export default function DashboardPage() {
@@ -94,6 +37,116 @@ export default function DashboardPage() {
   const tenantId = params.tenantId as string;
   const { currentTenant, userProfile } = useAuth();
   const { canViewFinancials } = usePermissions();
+
+  const isDemo = isDemoTenant(tenantId);
+
+  // Fetch real data from hooks
+  const { data: meetings = [] } = useMeetings(tenantId);
+  const { data: documents = [] } = useDocuments(tenantId);
+  const { data: decisions = [] } = useDecisions(tenantId);
+
+  // Compute stats from real data
+  const now = new Date();
+  const upcomingMeetings = meetings.filter((m) => {
+    const start = m.scheduledStart?.toDate ? m.scheduledStart.toDate() : new Date(0);
+    return start > now && (m.status === 'scheduled' || m.status === 'draft');
+  });
+
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+  const documentsThisMonth = documents.filter((d) => {
+    const created = d.createdAt?.toDate ? d.createdAt.toDate() : new Date(0);
+    return created.getMonth() === thisMonth && created.getFullYear() === thisYear;
+  });
+
+  // Count open action items from all meetings
+  const openActionItems = meetings.reduce((count, m) => {
+    return count + m.agendaItems.reduce((ac, item) => {
+      return ac + item.actionItems.filter((a) => a.status === 'pending' || a.status === 'in_progress').length;
+    }, 0);
+  }, 0);
+
+  const stats = {
+    upcomingMeetings: upcomingMeetings.length,
+    pendingSignatures: isDemo ? 2 : 0,
+    openActionItems,
+    documentsThisMonth: documentsThisMonth.length,
+  };
+
+  // Build upcoming meetings list for display
+  const meetingTypeMap: Record<string, string> = {
+    ordinary: 'board',
+    extraordinary: 'committee',
+    annual_general: 'general',
+    statutory: 'board',
+  };
+  const upcomingMeetingsList = upcomingMeetings.slice(0, 3).map((m) => ({
+    id: m.id,
+    title: m.title,
+    scheduledAt: m.scheduledStart?.toDate ? m.scheduledStart.toDate() : new Date(),
+    status: m.status,
+    type: meetingTypeMap[m.meetingType] || 'board',
+  }));
+
+  // Build recent activity from real data
+  const recentActivity: Array<{ id: string; type: string; message: string; timestamp: Date }> = [];
+
+  // Add recent meetings as activity
+  meetings
+    .filter((m) => m.status === 'completed')
+    .slice(0, 2)
+    .forEach((m) => {
+      recentActivity.push({
+        id: `meeting-${m.id}`,
+        type: 'meeting',
+        message: `${m.title} completed`,
+        timestamp: m.updatedAt?.toDate ? m.updatedAt.toDate() : new Date(),
+      });
+    });
+
+  // Add recent documents as activity
+  documents.slice(0, 2).forEach((d) => {
+    recentActivity.push({
+      id: `doc-${d.id}`,
+      type: 'document',
+      message: `${d.name} uploaded`,
+      timestamp: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(),
+    });
+  });
+
+  // Add recent decisions as activity
+  decisions.slice(0, 2).forEach((d) => {
+    recentActivity.push({
+      id: `decision-${d.id}`,
+      type: 'action',
+      message: `Decision: ${d.title} – ${d.outcome}`,
+      timestamp: d.decidedAt?.toDate ? d.decidedAt.toDate() : new Date(),
+    });
+  });
+
+  // Sort by timestamp descending
+  recentActivity.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+  // Financial snapshot
+  let financialSnapshot = emptyFinancialSnapshot;
+  if (isDemo && demoFinancials.length >= 2) {
+    const latest = demoFinancials[0]!;
+    const prev = demoFinancials[1]!;
+    const rev = latest.incomeStatement.revenue;
+    const prevRev = prev.incomeStatement.revenue;
+    const net = latest.incomeStatement.netIncome;
+    const prevNet = prev.incomeStatement.netIncome;
+    const cash = latest.balanceSheet.cashAndEquivalents;
+    const prevCash = prev.balanceSheet.cashAndEquivalents;
+    financialSnapshot = {
+      revenue: rev,
+      revenueChange: prevRev ? ((rev - prevRev) / prevRev) * 100 : 0,
+      netIncome: net,
+      netIncomeChange: prevNet ? ((net - prevNet) / prevNet) * 100 : 0,
+      cashBalance: cash,
+      cashChange: prevCash ? ((cash - prevCash) / prevCash) * 100 : 0,
+    };
+  }
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -130,7 +183,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Upcoming Meetings</p>
-                <p className="text-3xl font-bold">{mockStats.upcomingMeetings}</p>
+                <p className="text-3xl font-bold">{stats.upcomingMeetings}</p>
               </div>
               <div className="rounded-full bg-blue-100 p-3">
                 <Calendar className="h-6 w-6 text-blue-600" />
@@ -144,7 +197,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Signatures</p>
-                <p className="text-3xl font-bold">{mockStats.pendingSignatures}</p>
+                <p className="text-3xl font-bold">{stats.pendingSignatures}</p>
               </div>
               <div className="rounded-full bg-amber-100 p-3">
                 <FileText className="h-6 w-6 text-amber-600" />
@@ -158,7 +211,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Open Action Items</p>
-                <p className="text-3xl font-bold">{mockStats.openActionItems}</p>
+                <p className="text-3xl font-bold">{stats.openActionItems}</p>
               </div>
               <div className="rounded-full bg-red-100 p-3">
                 <AlertCircle className="h-6 w-6 text-red-600" />
@@ -172,7 +225,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Documents This Month</p>
-                <p className="text-3xl font-bold">{mockStats.documentsThisMonth}</p>
+                <p className="text-3xl font-bold">{stats.documentsThisMonth}</p>
               </div>
               <div className="rounded-full bg-green-100 p-3">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -200,7 +253,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockUpcomingMeetings.map((meeting) => (
+              {upcomingMeetingsList.length === 0 && (
+                <p className="text-sm text-muted-foreground py-4 text-center">No upcoming meetings</p>
+              )}
+              {upcomingMeetingsList.map((meeting) => (
                 <Link
                   key={meeting.id}
                   href={`/dashboard/${tenantId}/meetings/${meeting.id}`}
@@ -243,7 +299,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockRecentActivity.map((activity) => (
+              {recentActivity.length === 0 && (
+                <p className="text-sm text-muted-foreground py-4 text-center">No recent activity</p>
+              )}
+              {recentActivity.slice(0, 5).map((activity) => (
                 <div key={activity.id} className="flex items-start gap-3">
                   <div className="rounded-full bg-muted p-2 mt-0.5">
                     {activity.type === 'signature' && <FileText className="h-3 w-3" />}
@@ -282,47 +341,47 @@ export default function DashboardPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Revenue (YTD)</span>
-                    <div className={`flex items-center text-sm ${mockFinancialSnapshot.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {mockFinancialSnapshot.revenueChange >= 0 ? (
+                    <span className="text-sm text-muted-foreground">Revenue (Latest)</span>
+                    <div className={`flex items-center text-sm ${financialSnapshot.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {financialSnapshot.revenueChange >= 0 ? (
                         <TrendingUp className="h-3 w-3 mr-1" />
                       ) : (
                         <TrendingDown className="h-3 w-3 mr-1" />
                       )}
-                      {Math.abs(mockFinancialSnapshot.revenueChange)}%
+                      {Math.abs(financialSnapshot.revenueChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.revenue, 'SEK')}</p>
+                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.revenue, 'SEK')}</p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Net Income (YTD)</span>
-                    <div className={`flex items-center text-sm ${mockFinancialSnapshot.netIncomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {mockFinancialSnapshot.netIncomeChange >= 0 ? (
+                    <span className="text-sm text-muted-foreground">Net Income (Latest)</span>
+                    <div className={`flex items-center text-sm ${financialSnapshot.netIncomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {financialSnapshot.netIncomeChange >= 0 ? (
                         <TrendingUp className="h-3 w-3 mr-1" />
                       ) : (
                         <TrendingDown className="h-3 w-3 mr-1" />
                       )}
-                      {Math.abs(mockFinancialSnapshot.netIncomeChange)}%
+                      {Math.abs(financialSnapshot.netIncomeChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.netIncome, 'SEK')}</p>
+                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.netIncome, 'SEK')}</p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Cash Balance</span>
-                    <div className={`flex items-center text-sm ${mockFinancialSnapshot.cashChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {mockFinancialSnapshot.cashChange >= 0 ? (
+                    <div className={`flex items-center text-sm ${financialSnapshot.cashChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {financialSnapshot.cashChange >= 0 ? (
                         <TrendingUp className="h-3 w-3 mr-1" />
                       ) : (
                         <TrendingDown className="h-3 w-3 mr-1" />
                       )}
-                      {Math.abs(mockFinancialSnapshot.cashChange)}%
+                      {Math.abs(financialSnapshot.cashChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(mockFinancialSnapshot.cashBalance, 'SEK')}</p>
+                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.cashBalance, 'SEK')}</p>
                 </div>
               </div>
             </CardContent>
