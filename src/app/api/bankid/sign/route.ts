@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    verifyTenantAccess(user, tenantId);
+    await verifyTenantAccess(user, tenantId);
 
     // Get client IP for BankID
     const forwarded = request.headers.get('x-forwarded-for');

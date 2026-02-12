@@ -60,6 +60,7 @@ interface AuthContextValue {
   setCurrentTenant: (tenantId: string) => Promise<void>;
   hasAccessToTenant: (tenantId: string) => boolean;
   getTenantRole: (tenantId: string) => MemberRole | null;
+  refreshTenantClaims: () => Promise<TenantClaims>;
 
   // Auth actions
   signInWithEmail: (email: string, password: string) => Promise<void>;
@@ -187,9 +188,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // Refresh tenant claims by re-reading memberships from Firestore.
+  // Call this after creating or joining an organization so the auth
+  // context picks up the new membership without a page reload.
+  const refreshTenantClaims = useCallback(async (): Promise<TenantClaims> => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return {};
+
+    // Try JWT claims first, fall back to Firestore
+    let claims = await extractTenantClaims(currentUser);
+    if (Object.keys(claims).length === 0) {
+      claims = await fetchMembershipsFromFirestore(currentUser.uid);
+    }
+
+    // Check for pending tenant from recent org creation
+    const pendingTenantId = localStorage.getItem('governanceos_pending_tenant');
+    if (pendingTenantId && !claims[pendingTenantId]) {
+      const memberDoc = await getDoc(collections.member(pendingTenantId, currentUser.uid));
+      if (memberDoc.exists()) {
+        const memberData = memberDoc.data();
+        claims[pendingTenantId] = memberData.role as MemberRole;
+      }
+      localStorage.removeItem('governanceos_pending_tenant');
+    }
+
+    setTenantClaims(claims);
+    return claims;
+  }, [extractTenantClaims, fetchMembershipsFromFirestore]);
+
   // Set current tenant
   const setCurrentTenant = useCallback(async (tenantId: string) => {
-    if (!tenantClaims[tenantId]) {
+    // If tenant isn't in claims yet, try refreshing from Firestore
+    let claims = tenantClaims;
+    if (!claims[tenantId]) {
+      claims = await refreshTenantClaims();
+    }
+
+    if (!claims[tenantId]) {
       setError('You do not have access to this organization');
       return;
     }
@@ -201,7 +236,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Persist selection
       localStorage.setItem('governanceos_current_tenant', tenantId);
     }
-  }, [tenantClaims, fetchTenant]);
+  }, [tenantClaims, fetchTenant, refreshTenantClaims]);
 
   // Check tenant access
   const hasAccessToTenant = useCallback((tenantId: string): boolean => {
@@ -386,6 +421,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setCurrentTenant,
     hasAccessToTenant,
     getTenantRole,
+    refreshTenantClaims,
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,

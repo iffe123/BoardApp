@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    verifyTenantAccess(user, tenantId);
+    await verifyTenantAccess(user, tenantId);
 
     const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
     if (!rateCheck.allowed) {

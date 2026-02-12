@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    verifyTenantAccess(user, tenantId);
+    await verifyTenantAccess(user, tenantId);
 
     const tenantRef = collections.tenant(tenantId);
     const tenantDoc = await getDoc(tenantRef);
@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Only admins can update settings
-    verifyTenantRole(user, tenantId, ['owner', 'admin']);
+    await verifyTenantRole(user, tenantId, ['owner', 'admin']);
 
     const tenantRef = collections.tenant(tenantId);
     const tenantDoc = await getDoc(tenantRef);

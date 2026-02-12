@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    verifyTenantAccess(user, tenantId);
+    await verifyTenantAccess(user, tenantId);
 
     const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
     if (!rateCheck.allowed) {
@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    verifyTenantRole(user, tenantId, ['owner', 'admin']);
+    await verifyTenantRole(user, tenantId, ['owner', 'admin']);
 
     const parsed = ShareholderCreateSchema.partial().safeParse(updateData);
     if (!parsed.success) {
@@ -122,7 +122,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only owners can delete shareholders
-    verifyTenantRole(user, tenantId, ['owner']);
+    await verifyTenantRole(user, tenantId, ['owner']);
 
     const existing = await shareholdersDAL.get(tenantId, id);
     if (!existing) {

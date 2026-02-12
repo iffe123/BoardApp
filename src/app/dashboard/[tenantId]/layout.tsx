@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated, isLoading, currentTenant, hasAccessToTenant, setCurrentTenant } = useAuth();
+  const { isAuthenticated, isLoading, currentTenant, setCurrentTenant } = useAuth();
   const tenantId = params.tenantId as string;
 
   // Handle authentication and tenant access
@@ -24,17 +24,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         return;
       }
 
-      if (tenantId && !hasAccessToTenant(tenantId)) {
-        router.push('/dashboard');
-        return;
-      }
-
-      // Set current tenant if different from URL
+      // Set current tenant if different from URL.
+      // setCurrentTenant will refresh claims from Firestore if needed,
+      // so this works even right after org creation.
       if (tenantId && currentTenant?.id !== tenantId) {
         setCurrentTenant(tenantId);
       }
     }
-  }, [isAuthenticated, isLoading, tenantId, hasAccessToTenant, currentTenant, setCurrentTenant, router]);
+  }, [isAuthenticated, isLoading, tenantId, currentTenant, setCurrentTenant, router]);
 
   // Show loading state
   if (isLoading) {
