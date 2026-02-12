@@ -122,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       displayName: firebaseUser.displayName || 'User',
-      avatarUrl: firebaseUser.photoURL || undefined,
+      ...(firebaseUser.photoURL ? { avatarUrl: firebaseUser.photoURL } : {}),
       locale: 'sv-SE',
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       createdAt: Timestamp.now(),
