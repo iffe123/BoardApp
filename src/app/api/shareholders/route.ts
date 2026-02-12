@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    verifyTenantAccess(user, tenantId);
+    await verifyTenantAccess(user, tenantId);
 
     const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
     if (!rateCheck.allowed) {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    verifyTenantRole(user, tenantId, ['owner', 'admin']);
+    await verifyTenantRole(user, tenantId, ['owner', 'admin']);
 
     const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
     if (!rateCheck.allowed) {

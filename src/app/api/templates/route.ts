@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Add tenant-specific templates if tenantId provided
     if (tenantId) {
-      verifyTenantAccess(user, tenantId);
+      await verifyTenantAccess(user, tenantId);
 
       try {
         const templatesQuery = query(
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only admins can create templates
-    verifyTenantRole(user, tenantId, ['owner', 'admin']);
+    await verifyTenantRole(user, tenantId, ['owner', 'admin']);
 
     const template: Omit<MeetingTemplate, 'id'> = {
       tenantId,

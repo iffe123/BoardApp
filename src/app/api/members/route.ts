@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    verifyTenantAccess(user, tenantId);
+    await verifyTenantAccess(user, tenantId);
 
     const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
     if (!rateCheck.allowed) {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only admins can invite members
-    verifyTenantRole(user, tenantId, ['owner', 'admin']);
+    await verifyTenantRole(user, tenantId, ['owner', 'admin']);
 
     // Rate limit email sending
     const rateCheck = checkRateLimit(`email:${user.uid}`, RateLimits.email);

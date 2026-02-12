@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { collections, getDoc } from '@/lib/firebase';
 
 interface DecodedToken {
   uid: string;
@@ -88,25 +89,44 @@ export async function verifySession(request: NextRequest): Promise<AuthResult> {
 
 /**
  * Verify that the authenticated user has access to a specific tenant.
+ * Checks JWT claims first, then falls back to Firestore membership lookup
+ * (needed because custom claims may not be set without Firebase Admin SDK).
  */
-export function verifyTenantAccess(
+export async function verifyTenantAccess(
   user: DecodedToken,
   tenantId: string
-): void {
-  if (!user.tenants || !(tenantId in user.tenants)) {
-    throw new AuthError('Access denied: no access to this organization', 403);
+): Promise<void> {
+  // Check JWT claims first
+  if (user.tenants && tenantId in user.tenants) {
+    return;
   }
+
+  // Fallback: check Firestore membership directly
+  try {
+    const memberDoc = await getDoc(collections.member(tenantId, user.uid));
+    if (memberDoc.exists()) {
+      // Populate the tenants map so subsequent checks (e.g. role) work
+      if (!user.tenants) user.tenants = {};
+      const memberData = memberDoc.data();
+      user.tenants[tenantId] = memberData.role as string;
+      return;
+    }
+  } catch {
+    // If Firestore lookup fails, fall through to denial
+  }
+
+  throw new AuthError('Access denied: no access to this organization', 403);
 }
 
 /**
  * Verify that the authenticated user has a specific role in a tenant.
  */
-export function verifyTenantRole(
+export async function verifyTenantRole(
   user: DecodedToken,
   tenantId: string,
   allowedRoles: string[]
-): void {
-  verifyTenantAccess(user, tenantId);
+): Promise<void> {
+  await verifyTenantAccess(user, tenantId);
   const role = user.tenants![tenantId]!;
   if (!allowedRoles.includes(role)) {
     throw new AuthError('Access denied: insufficient permissions', 403);

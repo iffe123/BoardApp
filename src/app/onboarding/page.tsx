@@ -10,7 +10,7 @@ import type { Tenant, Member } from '@/types/schema';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, refreshTenantClaims, setCurrentTenant } = useAuth();
 
   const [step, setStep] = useState(1);
   const [orgName, setOrgName] = useState('');
@@ -91,6 +91,10 @@ export default function OnboardingPage() {
       // Store tenant ID in localStorage for immediate access
       localStorage.setItem('governanceos_current_tenant', tenantId);
       localStorage.setItem('governanceos_pending_tenant', tenantId);
+
+      // Refresh auth context so it picks up the new membership
+      await refreshTenantClaims();
+      await setCurrentTenant(tenantId);
 
       // Redirect to dashboard
       router.push(`/dashboard/${tenantId}`);
