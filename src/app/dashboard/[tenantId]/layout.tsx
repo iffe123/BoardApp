@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background dashboard-light-fonts">
       <Sidebar tenant={currentTenant} />
       <main className="flex-1 overflow-auto">
         {children}
