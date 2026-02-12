@@ -13,7 +13,6 @@ import type {
   Document,
   FinancialPeriod,
   Decision,
-  MemberRole,
 } from '@/types/schema';
 
 // ============================================================================
