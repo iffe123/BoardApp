@@ -20,8 +20,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { formatRelativeDate, formatCurrency } from '@/lib/utils';
-import { useMeetings, useDocuments, useDecisions } from '@/hooks/use-firestore';
+import { useMeetings, useDocuments, useDecisions, useMembers } from '@/hooks/use-firestore';
 import { isDemoTenant, demoFinancials } from '@/lib/demo-data';
+import { OnboardingChecklist } from '@/components/onboarding/onboarding-checklist';
 
 const emptyFinancialSnapshot = {
   revenue: 0,
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   const { data: meetings = [] } = useMeetings(tenantId);
   const { data: documents = [] } = useDocuments(tenantId);
   const { data: decisions = [] } = useDecisions(tenantId);
+  const { data: members = [] } = useMembers(tenantId);
 
   // Compute stats from real data
   const now = new Date();
@@ -175,6 +177,17 @@ export default function DashboardPage() {
           Here&apos;s what&apos;s happening at {currentTenant?.name || 'your organization'}
         </p>
       </div>
+
+      {/* Onboarding Checklist - shown for real (non-demo) orgs */}
+      {!isDemo && (
+        <OnboardingChecklist
+          tenantId={tenantId}
+          orgName={currentTenant?.name || 'your organization'}
+          memberCount={members.length}
+          meetingCount={meetings.length}
+          documentCount={documents.length}
+        />
+      )}
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
