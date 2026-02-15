@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/meeting-reminders",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-financials",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 3 * * 0"
+    }
+  ]
+}

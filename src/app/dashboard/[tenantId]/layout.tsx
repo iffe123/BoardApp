@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { useAuth } from '@/contexts/auth-context';
-import { isDemoTenant, demoTenant, DEMO_TENANT_ID } from '@/lib/demo-data';
+import { isDemoTenant, demoTenant } from '@/lib/demo-data';
 import { Loader2, FlaskConical } from 'lucide-react';
 
 interface DashboardLayoutProps {
