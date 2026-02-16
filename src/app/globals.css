@@ -60,7 +60,7 @@
 
 /* Lighter fonts for dashboard/app pages */
 .dashboard-light-fonts {
-  font-weight: 300;
+  font-weight: 200;
 }
 
 .dashboard-light-fonts h1,
@@ -69,33 +69,33 @@
 .dashboard-light-fonts h4,
 .dashboard-light-fonts h5,
 .dashboard-light-fonts h6 {
-  font-weight: 400;
+  font-weight: 300;
 }
 
 .dashboard-light-fonts strong,
 .dashboard-light-fonts b {
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* Step down Tailwind font-weight utilities within dashboard */
 .dashboard-light-fonts [class~="font-black"] {
-  font-weight: 700 !important;
-}
-
-.dashboard-light-fonts [class~="font-extrabold"] {
-  font-weight: 600 !important;
-}
-
-.dashboard-light-fonts [class~="font-bold"] {
   font-weight: 500 !important;
 }
 
-.dashboard-light-fonts [class~="font-semibold"] {
+.dashboard-light-fonts [class~="font-extrabold"] {
   font-weight: 400 !important;
 }
 
-.dashboard-light-fonts [class~="font-medium"] {
+.dashboard-light-fonts [class~="font-bold"] {
   font-weight: 300 !important;
+}
+
+.dashboard-light-fonts [class~="font-semibold"] {
+  font-weight: 300 !important;
+}
+
+.dashboard-light-fonts [class~="font-medium"] {
+  font-weight: 200 !important;
 }
 
 /* Custom scrollbar */

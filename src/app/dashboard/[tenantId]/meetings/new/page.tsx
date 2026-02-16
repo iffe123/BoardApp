@@ -32,22 +32,23 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { TimePicker } from '@/components/ui/time-picker';
-import type { Member, AgendaItem } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
+import type { AgendaItem, MemberRole } from '@/types/schema';
 import {
   DEFAULT_TEMPLATES,
   generateAgendaFromTemplate,
   calculateTotalDuration,
 } from '@/lib/meeting-templates';
+import { useMembers } from '@/hooks/use-firestore';
 
-// Mock members - would come from Firestore
-const mockMembers: (Member & { displayName: string; email: string })[] = [
-  { id: '1', tenantId: 'tenant1', userId: '1', role: 'chair', displayName: 'Anna Lindqvist', email: 'anna@example.com', title: 'Chair', isActive: true, conflicts: [], permissions: { canCreateMeetings: true, canManageMembers: true, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: true }, joinedAt: Timestamp.now() },
-  { id: '2', tenantId: 'tenant1', userId: '2', role: 'secretary', displayName: 'Erik Johansson', email: 'erik@example.com', title: 'Secretary', isActive: true, conflicts: [], permissions: { canCreateMeetings: true, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: true }, joinedAt: Timestamp.now() },
-  { id: '3', tenantId: 'tenant1', userId: '3', role: 'director', displayName: 'Maria Svensson', email: 'maria@example.com', title: 'Board Member', isActive: true, conflicts: [], permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: false }, joinedAt: Timestamp.now() },
-  { id: '4', tenantId: 'tenant1', userId: '4', role: 'director', displayName: 'Karl Nilsson', email: 'karl@example.com', title: 'Board Member', isActive: true, conflicts: [], permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: false }, joinedAt: Timestamp.now() },
-  { id: '5', tenantId: 'tenant1', userId: '5', role: 'director', displayName: 'Lisa Andersson', email: 'lisa@example.com', title: 'External Director', isActive: true, conflicts: [], permissions: { canCreateMeetings: false, canManageMembers: false, canAccessFinancials: true, canSignDocuments: true, canManageDocuments: false }, joinedAt: Timestamp.now() },
-];
+const roleLabels: Record<MemberRole, string> = {
+  owner: 'Owner',
+  admin: 'Administrator',
+  secretary: 'Secretary',
+  chair: 'Chair',
+  director: 'Board Director',
+  observer: 'Observer',
+  auditor: 'Auditor',
+};
 
 type LocationType = 'physical' | 'virtual' | 'hybrid';
 type MeetingType = 'ordinary' | 'extraordinary' | 'annual_general' | 'statutory';
@@ -80,6 +81,12 @@ export default function NewMeetingPage() {
   const duplicateTitle = searchParams.get('title');
   const duplicateType = searchParams.get('type') as MeetingType | null;
 
+  const { data: members = [] } = useMembers(tenantId);
+
+  const getMemberDisplayName = (member: { title?: string; role: MemberRole; userId: string }) => {
+    return member.title || roleLabels[member.role] || member.userId;
+  };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [step, setStep] = useState(1);
@@ -97,7 +104,7 @@ export default function NewMeetingPage() {
     videoUrl: '',
     videoPlatform: 'teams',
     quorumRequired: 3,
-    selectedMemberIds: mockMembers.map((m) => m.id),
+    selectedMemberIds: [],
     agendaItems: [],
   });
 
@@ -628,8 +635,14 @@ export default function NewMeetingPage() {
                 </span>
               </div>
               <div className="space-y-2">
-                {mockMembers.map((member) => {
+                {members.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    No members found. Invite members to your organization first.
+                  </p>
+                )}
+                {members.map((member) => {
                   const isSelected = form.selectedMemberIds.includes(member.id);
+                  const displayName = getMemberDisplayName(member);
                   return (
                     <button
                       key={member.id}
@@ -643,9 +656,9 @@ export default function NewMeetingPage() {
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <UserAvatar name={member.displayName} size="sm" />
+                        <UserAvatar name={displayName} size="sm" />
                         <div className="text-left">
-                          <p className="font-medium text-sm">{member.displayName}</p>
+                          <p className="font-medium text-sm">{displayName}</p>
                           <p className="text-xs text-muted-foreground">{member.title}</p>
                         </div>
                       </div>
