@@ -28,112 +28,8 @@ import { MeetingCard } from '@/components/meetings/meeting-card';
 import { MeetingCalendar } from '@/components/meetings/meeting-calendar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { Meeting, MeetingStatus } from '@/types/schema';
-import { Timestamp } from 'firebase/firestore';
-
-// Mock data - would come from Firestore in real app
-const mockMeetings: Meeting[] = [
-  {
-    id: '1',
-    tenantId: 'tenant1',
-    title: 'Q4 Board Meeting',
-    description: 'Quarterly board meeting to review Q4 results',
-    meetingType: 'ordinary',
-    status: 'scheduled',
-    scheduledStart: Timestamp.fromDate(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)),
-    scheduledEnd: Timestamp.fromDate(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000)),
-    timezone: 'Europe/Stockholm',
-    location: {
-      type: 'hybrid',
-      address: 'Stureplan 4, Stockholm',
-      room: 'Board Room',
-      videoConferenceUrl: 'https://teams.microsoft.com/meet/123',
-      videoConferencePlatform: 'teams',
-    },
-    attendees: [
-      { memberId: '1', userId: '1', displayName: 'Anna Lindqvist', role: 'chair', invitedAt: Timestamp.now(), response: 'accepted', hasVotingRights: true },
-      { memberId: '2', userId: '2', displayName: 'Erik Johansson', role: 'secretary', invitedAt: Timestamp.now(), response: 'accepted', hasVotingRights: true },
-      { memberId: '3', userId: '3', displayName: 'Maria Svensson', role: 'director', invitedAt: Timestamp.now(), response: 'pending', hasVotingRights: true },
-    ],
-    quorumRequired: 2,
-    agendaItems: [
-      { id: '1', orderIndex: 0, title: 'Opening', type: 'formality', estimatedDuration: 5, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: false, isCompleted: false },
-      { id: '2', orderIndex: 1, title: 'Q4 Financial Review', type: 'information', estimatedDuration: 30, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: false, isCompleted: false },
-      { id: '3', orderIndex: 2, title: 'Budget Approval 2025', type: 'decision', estimatedDuration: 45, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: false, isCompleted: false },
-    ],
-    agendaLocked: false,
-    documentIds: ['doc1', 'doc2'],
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    createdBy: '1',
-    lastModifiedBy: '1',
-  },
-  {
-    id: '2',
-    tenantId: 'tenant1',
-    title: 'Audit Committee Meeting',
-    description: 'Review internal audit findings',
-    meetingType: 'ordinary',
-    status: 'scheduled',
-    scheduledStart: Timestamp.fromDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)),
-    scheduledEnd: Timestamp.fromDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 1.5 * 60 * 60 * 1000)),
-    timezone: 'Europe/Stockholm',
-    location: {
-      type: 'virtual',
-      videoConferenceUrl: 'https://zoom.us/j/123456',
-      videoConferencePlatform: 'zoom',
-    },
-    attendees: [
-      { memberId: '1', userId: '1', displayName: 'Anna Lindqvist', role: 'chair', invitedAt: Timestamp.now(), response: 'accepted', hasVotingRights: true },
-      { memberId: '4', userId: '4', displayName: 'Karl Nilsson', role: 'director', invitedAt: Timestamp.now(), response: 'accepted', hasVotingRights: true },
-    ],
-    quorumRequired: 2,
-    agendaItems: [
-      { id: '1', orderIndex: 0, title: 'Opening', type: 'formality', estimatedDuration: 5, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: false, isCompleted: false },
-      { id: '2', orderIndex: 1, title: 'Internal Audit Report', type: 'discussion', estimatedDuration: 60, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: true, isCompleted: false },
-    ],
-    agendaLocked: false,
-    documentIds: [],
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    createdBy: '1',
-    lastModifiedBy: '1',
-  },
-  {
-    id: '3',
-    tenantId: 'tenant1',
-    title: 'November Board Meeting',
-    description: 'Monthly board meeting',
-    meetingType: 'ordinary',
-    status: 'completed',
-    scheduledStart: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    scheduledEnd: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000)),
-    actualStart: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-    actualEnd: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 1.5 * 60 * 60 * 1000)),
-    timezone: 'Europe/Stockholm',
-    location: {
-      type: 'physical',
-      address: 'Stureplan 4, Stockholm',
-      room: 'Board Room',
-    },
-    attendees: [
-      { memberId: '1', userId: '1', displayName: 'Anna Lindqvist', role: 'chair', invitedAt: Timestamp.now(), response: 'accepted', attendanceStatus: 'present', hasVotingRights: true },
-      { memberId: '2', userId: '2', displayName: 'Erik Johansson', role: 'secretary', invitedAt: Timestamp.now(), response: 'accepted', attendanceStatus: 'present', hasVotingRights: true },
-      { memberId: '3', userId: '3', displayName: 'Maria Svensson', role: 'director', invitedAt: Timestamp.now(), response: 'accepted', attendanceStatus: 'present', hasVotingRights: true },
-    ],
-    quorumRequired: 2,
-    agendaItems: [
-      { id: '1', orderIndex: 0, title: 'Opening', type: 'formality', estimatedDuration: 5, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: false, isCompleted: true },
-      { id: '2', orderIndex: 1, title: 'Previous Minutes Approval', type: 'formality', estimatedDuration: 10, documentIds: [], conflictKeywords: [], recusedMemberIds: [], actionItems: [], isConfidential: false, isCompleted: true },
-    ],
-    agendaLocked: true,
-    documentIds: ['doc3'],
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-    createdBy: '1',
-    lastModifiedBy: '1',
-  },
-];
+import type { MeetingStatus } from '@/types/schema';
+import { useMeetings } from '@/hooks/use-firestore';
 
 type ViewMode = 'grid' | 'list' | 'calendar';
 type FilterStatus = 'all' | MeetingStatus;
@@ -145,10 +41,11 @@ export default function MeetingsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading] = useState(false);
+
+  const { data: meetings = [], isLoading } = useMeetings(tenantId);
 
   // Filter meetings
-  const filteredMeetings = mockMeetings.filter((meeting) => {
+  const filteredMeetings = meetings.filter((meeting) => {
     const matchesStatus = filterStatus === 'all' || meeting.status === filterStatus;
     const matchesSearch =
       searchQuery === '' ||
@@ -158,7 +55,7 @@ export default function MeetingsPage() {
   });
 
   // Group meetings by status for summary
-  const meetingsByStatus = mockMeetings.reduce(
+  const meetingsByStatus = meetings.reduce(
     (acc, meeting) => {
       acc[meeting.status] = (acc[meeting.status] || 0) + 1;
       return acc;
@@ -338,7 +235,7 @@ export default function MeetingsPage() {
 
       {/* Calendar View */}
       {!isLoading && viewMode === 'calendar' && (
-        <MeetingCalendar meetings={mockMeetings} tenantId={tenantId} />
+        <MeetingCalendar meetings={meetings} tenantId={tenantId} />
       )}
 
       {/* Meeting Lists (Grid/List View) */}
