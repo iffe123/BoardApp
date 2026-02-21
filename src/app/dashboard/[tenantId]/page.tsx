@@ -168,7 +168,7 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-light tracking-tight">
           {getGreeting()}, {userProfile?.displayName?.split(' ')[0] || 'there'}
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -182,8 +182,8 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming Meetings</p>
-                <p className="text-3xl font-bold">{stats.upcomingMeetings}</p>
+                <p className="text-sm font-normal text-muted-foreground">Upcoming Meetings</p>
+                <p className="text-3xl font-light">{stats.upcomingMeetings}</p>
               </div>
               <div className="rounded-full bg-blue-100 p-3">
                 <Calendar className="h-6 w-6 text-blue-600" />
@@ -196,8 +196,8 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Signatures</p>
-                <p className="text-3xl font-bold">{stats.pendingSignatures}</p>
+                <p className="text-sm font-normal text-muted-foreground">Pending Signatures</p>
+                <p className="text-3xl font-light">{stats.pendingSignatures}</p>
               </div>
               <div className="rounded-full bg-amber-100 p-3">
                 <FileText className="h-6 w-6 text-amber-600" />
@@ -210,8 +210,8 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Open Action Items</p>
-                <p className="text-3xl font-bold">{stats.openActionItems}</p>
+                <p className="text-sm font-normal text-muted-foreground">Open Action Items</p>
+                <p className="text-3xl font-light">{stats.openActionItems}</p>
               </div>
               <div className="rounded-full bg-red-100 p-3">
                 <AlertCircle className="h-6 w-6 text-red-600" />
@@ -224,8 +224,8 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Documents This Month</p>
-                <p className="text-3xl font-bold">{stats.documentsThisMonth}</p>
+                <p className="text-sm font-normal text-muted-foreground">Documents This Month</p>
+                <p className="text-3xl font-light">{stats.documentsThisMonth}</p>
               </div>
               <div className="rounded-full bg-green-100 p-3">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -267,7 +267,7 @@ export default function DashboardPage() {
                       <Calendar className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{meeting.title}</p>
+                      <p className="font-normal">{meeting.title}</p>
                       <p className="text-sm text-muted-foreground">
                         {formatRelativeDate(meeting.scheduledAt)}
                       </p>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                       {Math.abs(financialSnapshot.revenueChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.revenue, 'SEK')}</p>
+                  <p className="text-2xl font-light">{formatCurrency(financialSnapshot.revenue, 'SEK')}</p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
@@ -366,7 +366,7 @@ export default function DashboardPage() {
                       {Math.abs(financialSnapshot.netIncomeChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.netIncome, 'SEK')}</p>
+                  <p className="text-2xl font-light">{formatCurrency(financialSnapshot.netIncome, 'SEK')}</p>
                 </div>
 
                 <div className="p-4 rounded-lg bg-muted/50">
@@ -381,7 +381,7 @@ export default function DashboardPage() {
                       {Math.abs(financialSnapshot.cashChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.cashBalance, 'SEK')}</p>
+                  <p className="text-2xl font-light">{formatCurrency(financialSnapshot.cashBalance, 'SEK')}</p>
                 </div>
               </div>
             </CardContent>
@@ -400,7 +400,7 @@ export default function DashboardPage() {
                 <Button variant="outline" className="w-full justify-start h-auto py-4">
                   <Calendar className="h-5 w-5 mr-3" />
                   <div className="text-left">
-                    <p className="font-medium">Schedule Meeting</p>
+                    <p className="font-normal">Schedule Meeting</p>
                     <p className="text-xs text-muted-foreground">Create a new board meeting</p>
                   </div>
                 </Button>
@@ -409,7 +409,7 @@ export default function DashboardPage() {
                 <Button variant="outline" className="w-full justify-start h-auto py-4">
                   <FileText className="h-5 w-5 mr-3" />
                   <div className="text-left">
-                    <p className="font-medium">Upload Document</p>
+                    <p className="font-normal">Upload Document</p>
                     <p className="text-xs text-muted-foreground">Add files to the repository</p>
                   </div>
                 </Button>
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 <Button variant="outline" className="w-full justify-start h-auto py-4">
                   <Users className="h-5 w-5 mr-3" />
                   <div className="text-left">
-                    <p className="font-medium">Manage Members</p>
+                    <p className="font-normal">Manage Members</p>
                     <p className="text-xs text-muted-foreground">Invite or update members</p>
                   </div>
                 </Button>
@@ -427,7 +427,7 @@ export default function DashboardPage() {
                 <Button variant="outline" className="w-full justify-start h-auto py-4">
                   <BarChart3 className="h-5 w-5 mr-3" />
                   <div className="text-left">
-                    <p className="font-medium">View Financials</p>
+                    <p className="font-normal">View Financials</p>
                     <p className="text-xs text-muted-foreground">Check latest reports</p>
                   </div>
                 </Button>

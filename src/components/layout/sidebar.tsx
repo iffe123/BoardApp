@@ -131,7 +131,7 @@ function NavLink({ item, isActive }: NavLinkProps) {
     <Link
       href={item.href}
       className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-normal transition-colors',
         isActive
           ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -184,7 +184,7 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcher
             )}
             <div className="text-left">
               <div className="flex items-center gap-1.5">
-                <p className="font-medium truncate max-w-[120px]">
+                <p className="font-normal truncate max-w-[120px]">
                   {currentTenant?.name || 'Select Organization'}
                 </p>
                 {isDemo && (
@@ -267,7 +267,7 @@ function UserMenu() {
             size="sm"
           />
           <div className="text-left flex-1 overflow-hidden">
-            <p className="font-medium truncate">
+            <p className="font-normal truncate">
               {userProfile?.displayName || user.displayName || 'User'}
             </p>
             <p className="text-xs text-muted-foreground capitalize">
@@ -402,7 +402,7 @@ export function Sidebar({ tenant, className }: SidebarProps) {
       {/* Logo / Brand */}
       <div className="flex h-16 items-center gap-2 border-b px-4">
         <Briefcase className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">GovernanceOS</span>
+        <span className="text-lg font-normal">GovernanceOS</span>
       </div>
 
       {/* Organization Switcher */}
@@ -429,13 +429,13 @@ export function Sidebar({ tenant, className }: SidebarProps) {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
+          <p className="px-3 text-xs font-normal text-muted-foreground uppercase tracking-widest mb-2">
             Quick Actions
           </p>
           <div className="space-y-1">
             <Link
               href={`/dashboard/${tenantId}/meetings/new`}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-normal text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <Plus className="h-5 w-5" />
               New Meeting
