@@ -178,6 +178,10 @@ Generates meeting minutes from agenda items and notes.
 - Server-side API key protection for AI services
 - Document hashing for signature integrity verification
 
+## AI workspace
+
+See [`/ai`](./ai) for concise product, architecture, constraints, and decision context used to guide AI-assisted planning and implementation.
+
 ## License
 
 MIT License
