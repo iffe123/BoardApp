@@ -5,19 +5,19 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 220 12% 35%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 220 12% 35%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 12% 35%;
+    --popover-foreground: 222.2 84% 4.9%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 220 12% 38%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215 12% 60%;
+    --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 210 40% 96.1%;
-    --accent-foreground: 220 12% 38%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
@@ -38,7 +38,7 @@
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 18% 78%;
+    --muted-foreground: 215 20.2% 65.1%;
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
@@ -60,7 +60,7 @@
 
 /* Lighter fonts for dashboard/app pages */
 .dashboard-light-fonts {
-  font-weight: 200;
+  font-weight: 100;
 }
 
 .dashboard-light-fonts h1,
@@ -69,33 +69,33 @@
 .dashboard-light-fonts h4,
 .dashboard-light-fonts h5,
 .dashboard-light-fonts h6 {
-  font-weight: 300;
+  font-weight: 200;
 }
 
 .dashboard-light-fonts strong,
 .dashboard-light-fonts b {
-  font-weight: 400;
+  font-weight: 300;
 }
 
 /* Step down Tailwind font-weight utilities within dashboard */
 .dashboard-light-fonts [class~="font-black"] {
-  font-weight: 500 !important;
-}
-
-.dashboard-light-fonts [class~="font-extrabold"] {
   font-weight: 400 !important;
 }
 
-.dashboard-light-fonts [class~="font-bold"] {
+.dashboard-light-fonts [class~="font-extrabold"] {
   font-weight: 300 !important;
+}
+
+.dashboard-light-fonts [class~="font-bold"] {
+  font-weight: 200 !important;
 }
 
 .dashboard-light-fonts [class~="font-semibold"] {
-  font-weight: 300 !important;
+  font-weight: 200 !important;
 }
 
 .dashboard-light-fonts [class~="font-medium"] {
-  font-weight: 200 !important;
+  font-weight: 100 !important;
 }
 
 /* Custom scrollbar */
