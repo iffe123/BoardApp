@@ -23,3 +23,7 @@
 ## D-006: AI as copilot, not autopilot
 - **Decision**: Use AI to summarize, draft, and highlight issues, with explicit human approval for final records.
 - **Why**: Governance workflows require accountability, explainability, and legal caution.
+
+## D-007: Token-hashed calendar subscriptions for ICS/webcal feeds
+- **Decision**: Implement calendar subscriptions as tokenized URLs where only SHA-256 token hashes are stored in Firestore (`calendar_subscriptions`), with explicit rotate/revoke endpoints.
+- **Why**: Enables unauthenticated calendar feed consumption (`webcal://`) while reducing server-side token exposure and providing quick invalidation through token rotation.

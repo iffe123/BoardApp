@@ -205,6 +205,9 @@ export const collections = {
   calendarConnections: (tenantId: string) => collection(db, 'tenants', tenantId, 'calendar_connections'),
   calendarConnection: (tenantId: string, connectionId: string) => doc(db, 'tenants', tenantId, 'calendar_connections', connectionId),
 
+  calendarSubscriptions: (tenantId: string) => collection(db, 'tenants', tenantId, 'calendar_subscriptions'),
+  calendarSubscription: (tenantId: string, subscriptionId: string) => doc(db, 'tenants', tenantId, 'calendar_subscriptions', subscriptionId),
+
   auditLogs: (tenantId: string) => collection(db, 'tenants', tenantId, 'audit_logs'),
   signatureAudits: (tenantId: string) => collection(db, 'tenants', tenantId, 'signature_audits'),
   notifications: (tenantId: string) => collection(db, 'tenants', tenantId, 'notifications'),
