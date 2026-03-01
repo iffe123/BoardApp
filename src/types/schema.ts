@@ -118,6 +118,14 @@ export interface Tenant {
     country: string;
   };
 
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
+
   // Metadata
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -221,6 +229,14 @@ export interface Meeting {
   // Template
   templateId?: string;
   templateName?: string;
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   createdAt: Timestamp;
@@ -347,6 +363,14 @@ export interface MeetingMinutes {
   // AI-generated summary
   aiSummary?: string;
 
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
+
   // Metadata
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -355,6 +379,47 @@ export interface MeetingMinutes {
 
   // Document hash for integrity
   contentHash?: string;
+}
+
+export type MinutesReviewStatus =
+  | 'draft'
+  | 'in_review'
+  | 'changes_requested'
+  | 'approved'
+  | 'closed';
+
+export type MinutesReviewerStatus = 'pending' | 'approved' | 'changes_requested';
+
+export interface MinutesReviewReviewer {
+  userId: string;
+  role?: string;
+  status: MinutesReviewerStatus;
+  respondedAt?: Timestamp;
+}
+
+export interface MinutesReview {
+  id: string;
+  tenantId: string;
+  meetingId: string;
+  status: MinutesReviewStatus;
+  requestedByUserId: string;
+  requestedAt: Timestamp;
+  closedAt?: Timestamp;
+  reviewers: MinutesReviewReviewer[];
+}
+
+export interface MinutesComment {
+  id: string;
+  tenantId: string;
+  meetingId: string;
+  agendaItemId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  type: 'comment' | 'change_request';
+  createdAt: Timestamp;
+  resolvedAt?: Timestamp;
+  resolvedByUserId?: string;
 }
 
 export interface MinuteItem {
@@ -437,6 +502,14 @@ export interface Document {
   // Tags and search
   tags: string[];
   searchableText?: string; // Extracted text for full-text search
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   createdAt: Timestamp;
@@ -575,6 +648,14 @@ export interface FinancialPeriod {
   approvedBy?: string;
   approvedAt?: Timestamp;
 
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
+
   // Metadata
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -606,6 +687,14 @@ export interface ERPConnection {
 
   // Account mapping
   accountMapping?: Record<string, string>;
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   connectedAt: Timestamp;
@@ -641,6 +730,14 @@ export interface CalendarConnection {
   lastSyncAt?: Timestamp;
   lastSyncStatus?: 'success' | 'partial' | 'failed';
   lastSyncError?: string;
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   connectedAt: Timestamp;
@@ -697,6 +794,14 @@ export interface Decision {
   relatedDocumentIds: string[];
   relatedDecisionIds: string[];
 
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
+
   // Metadata
   decidedAt: Timestamp;
   recordedBy: string;
@@ -726,6 +831,14 @@ export interface MeetingTemplate {
   // Access
   visibility: 'public' | 'private' | 'hidden';
   accessCode?: string;
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   createdAt: Timestamp;
@@ -833,6 +946,14 @@ export interface ClientManagerProfile {
     logoUrl?: string;
   };
 
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
+
   // Metadata
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -847,7 +968,16 @@ export interface Notification {
   userId: string;
   tenantId: string;
 
-  type: 'meeting_reminder' | 'document_shared' | 'signature_required' | 'task_assigned' | 'comment_added' | 'meeting_updated';
+  type:
+    | 'meeting_reminder'
+    | 'document_shared'
+    | 'signature_required'
+    | 'task_assigned'
+    | 'comment_added'
+    | 'meeting_updated'
+    | 'minutes_review_requested'
+    | 'minutes_review_changes_requested'
+    | 'minutes_review_approved';
   title: string;
   body: string;
 
@@ -862,6 +992,14 @@ export interface Notification {
 
   // Delivery
   deliveredVia: ('in_app' | 'email' | 'push')[];
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   createdAt: Timestamp;
@@ -931,6 +1069,14 @@ export interface ShareTransaction {
 
   // Digital signatures
   signatureIds?: string[];
+
+
+  securityPolicy?: {
+    requireWebAuthnStepUp: boolean;
+    requireWebAuthnForRoles?: MemberRole[];
+    sessionTtlHours: number;
+    enforceForDashboard: boolean;
+  };
 
   // Metadata
   registeredBy: string;

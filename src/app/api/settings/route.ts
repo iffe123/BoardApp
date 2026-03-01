@@ -106,6 +106,12 @@ export async function PATCH(request: NextRequest) {
         ...updates.settings,
       };
     }
+    if (updates.securityPolicy !== undefined) {
+      updateData.securityPolicy = {
+        ...(oldData?.securityPolicy as Record<string, unknown> | undefined),
+        ...updates.securityPolicy,
+      };
+    }
 
     await updateDoc(tenantRef, updateData);
 

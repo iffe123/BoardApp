@@ -32,6 +32,11 @@ const serverEnvSchema = z.object({
   // Resend (email)
   RESEND_API_KEY: z.string().optional(),
 
+  // WebAuthn
+  BOARDAPP_RP_ID: z.string().optional(),
+  BOARDAPP_ORIGIN: z.string().optional(),
+  WEB_AUTHN_JWT_SECRET: z.string().optional(),
+
   // App config
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

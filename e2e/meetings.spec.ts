@@ -123,3 +123,13 @@ test.describe('Meetings - View Modes', () => {
     expect(content!.length).toBeGreaterThan(0);
   });
 });
+
+test('minutes review workflow surfaces comment badges and review actions', async ({ page }) => {
+  await page.goto('/dashboard/demo/meetings');
+  await page.getByRole('link', { name: /view details/i }).first().click();
+  await page.getByRole('tab', { name: 'Minutes' }).click();
+  await expect(page.getByText(/Review status/i)).toBeVisible();
+  await expect(page.getByText(/Be om kommentarer/i)).toBeVisible();
+  await page.getByRole('button', { name: /message-square/i }).first().click();
+  await expect(page.getByText(/Kommentarer/i)).toBeVisible();
+});

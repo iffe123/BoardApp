@@ -38,6 +38,15 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
+import { auth } from '@/lib/firebase';
+
+const toBase64Url = (buffer: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+const fromBase64Url = (value: string) => {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob(padded);
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+};
 
 export default function SettingsPage() {
   const params = useParams();
@@ -76,6 +85,13 @@ export default function SettingsPage() {
 
   // Compliance
   const [documentRetentionYears, setDocumentRetentionYears] = useState('7');
+
+  // WebAuthn
+  const [requireWebAuthnStepUp, setRequireWebAuthnStepUp] = useState(false);
+  const [sessionTtlHours, setSessionTtlHours] = useState('12');
+  const [requireRoles, setRequireRoles] = useState<string[]>([]);
+  const [credentials, setCredentials] = useState<Array<Record<string, unknown>>>([]);
+  const [deviceName, setDeviceName] = useState('My Security Key');
 
   // Calendar connections
   const [microsoftStatus, setMicrosoftStatus] = useState<'disconnected' | 'active' | 'error' | 'loading'>('loading');
@@ -387,6 +403,11 @@ export default function SettingsPage() {
       // Load compliance settings
       const compliance = (settings as Record<string, unknown>).compliance as Record<string, unknown> || {};
       setDocumentRetentionYears(String(compliance.documentRetentionYears || 7));
+
+      const securityPolicy = (currentTenant as Record<string, unknown>).securityPolicy as Record<string, unknown> || {};
+      setRequireWebAuthnStepUp(Boolean(securityPolicy.requireWebAuthnStepUp));
+      setSessionTtlHours(String(securityPolicy.sessionTtlHours || 12));
+      setRequireRoles((securityPolicy.requireWebAuthnForRoles as string[] | undefined) || []);
     }
   }, [currentTenant]);
 
@@ -437,6 +458,12 @@ export default function SettingsPage() {
                 documentRetentionYears: parseInt(documentRetentionYears),
               },
             },
+            securityPolicy: {
+              requireWebAuthnStepUp,
+              requireWebAuthnForRoles: requireRoles,
+              sessionTtlHours: parseInt(sessionTtlHours),
+              enforceForDashboard: true,
+            },
           },
         }),
       });
@@ -466,8 +493,81 @@ export default function SettingsPage() {
     defaultMeetingDuration, defaultQuorum, meetingReminderTiming,
     agendaUpdatesEnabled, minutesReadyEnabled, newDocumentsEnabled,
     signatureRequestsEnabled, taskAssignmentsEnabled, dueDateReminderDays,
-    documentRetentionYears, setCurrentTenant
+    documentRetentionYears, requireWebAuthnStepUp, requireRoles, sessionTtlHours, setCurrentTenant
   ]);
+
+
+  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return {};
+    const token = await currentUser.getIdToken();
+    return { Authorization: `Bearer ${token}` };
+  }, []);
+
+  const loadCredentials = useCallback(async () => {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`/api/auth/webauthn/credentials?tenantId=${tenantId}`, { headers });
+    if (!res.ok) return;
+    const data = await res.json();
+    setCredentials(data.credentials || []);
+  }, [getAuthHeaders, tenantId]);
+
+  useEffect(() => {
+    void loadCredentials();
+  }, [loadCredentials]);
+
+  const startRegistration = async () => {
+    const headers = await getAuthHeaders();
+    const optionsRes = await fetch('/api/auth/webauthn/register/options', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId }),
+    });
+    const optionsData = await optionsRes.json();
+    if (!optionsRes.ok) throw new Error(optionsData.error || 'Unable to start registration');
+
+    const options = optionsData.options as PublicKeyCredentialCreationOptions & { challenge: string; user: { id: string } };
+    const publicKey: PublicKeyCredentialCreationOptions = {
+      ...options,
+      challenge: fromBase64Url(options.challenge),
+      user: { ...options.user, id: fromBase64Url(options.user.id) },
+    };
+    const credential = await navigator.credentials.create({ publicKey }) as PublicKeyCredential;
+    const response = credential.response as AuthenticatorAttestationResponse;
+
+    const verifyRes = await fetch('/api/auth/webauthn/register/verify', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId,
+        deviceName,
+        credential: {
+          id: credential.id,
+          type: credential.type,
+          response: {
+            clientDataJSON: toBase64Url(response.clientDataJSON),
+            attestationObject: toBase64Url(response.attestationObject),
+            publicKey: '',
+            transports: response.getTransports?.() || [],
+          },
+        },
+      }),
+    });
+
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok) throw new Error(verifyData.error || 'Unable to verify key');
+    await loadCredentials();
+  };
+
+  const removeCredential = async (credentialId: string) => {
+    const headers = await getAuthHeaders();
+    await fetch(`/api/auth/webauthn/credentials/${credentialId}/delete`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId }),
+    });
+    await loadCredentials();
+  };
 
   if (!isAdmin) {
     return (
@@ -510,6 +610,10 @@ export default function SettingsPage() {
           <TabsTrigger value="compliance">
             <Shield className="h-4 w-4 mr-2" />
             Compliance
+          </TabsTrigger>
+          <TabsTrigger value="security">
+            <Shield className="h-4 w-4 mr-2" />
+            Security
           </TabsTrigger>
           {isOwner && (
             <TabsTrigger value="billing">
@@ -1286,6 +1390,49 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Billing */}
+                <TabsContent value="security">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tenant security policy</CardTitle>
+                <CardDescription>Configure WebAuthn step-up requirements for dashboard access.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={requireWebAuthnStepUp} onChange={(e) => setRequireWebAuthnStepUp(e.target.checked)} />
+                  Require Security Key / Passkey step-up
+                </label>
+                <div className="space-y-2">
+                  <Label>Required roles (comma separated)</Label>
+                  <Input value={requireRoles.join(',')} onChange={(e) => setRequireRoles(e.target.value.split(',').map((v) => v.trim()).filter(Boolean))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Session TTL (hours)</Label>
+                  <Input value={sessionTtlHours} onChange={(e) => setSessionTtlHours(e.target.value)} />
+                </div>
+                <Button onClick={handleSave} disabled={isSaving}>Save Security Policy</Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>My security keys</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Input value={deviceName} onChange={(e) => setDeviceName(e.target.value)} placeholder="Device name" />
+                  <Button onClick={startRegistration}>Add security key</Button>
+                </div>
+                {credentials.map((item) => (
+                  <div key={String(item.id)} className="flex items-center justify-between border rounded p-2">
+                    <p className="text-sm">{String(item.deviceName || item.id)}</p>
+                    <Button variant="outline" onClick={() => removeCredential(String(item.id))}>Remove</Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {isOwner && (
           <TabsContent value="billing">
             <div className="space-y-6">

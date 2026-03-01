@@ -186,6 +186,14 @@ export const collections = {
 
   meetings: (tenantId: string) => collection(db, 'tenants', tenantId, 'meetings'),
   meeting: (tenantId: string, meetingId: string) => doc(db, 'tenants', tenantId, 'meetings', meetingId),
+  minutesReviews: (tenantId: string, meetingId: string) =>
+    collection(db, 'tenants', tenantId, 'meetings', meetingId, 'minutesReviews'),
+  minutesReview: (tenantId: string, meetingId: string, reviewId: string) =>
+    doc(db, 'tenants', tenantId, 'meetings', meetingId, 'minutesReviews', reviewId),
+  minutesComments: (tenantId: string, meetingId: string) =>
+    collection(db, 'tenants', tenantId, 'meetings', meetingId, 'minutesComments'),
+  minutesComment: (tenantId: string, meetingId: string, commentId: string) =>
+    doc(db, 'tenants', tenantId, 'meetings', meetingId, 'minutesComments', commentId),
 
   documents: (tenantId: string) => collection(db, 'tenants', tenantId, 'documents'),
   document: (tenantId: string, documentId: string) => doc(db, 'tenants', tenantId, 'documents', documentId),
