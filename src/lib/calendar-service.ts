@@ -68,6 +68,11 @@ export interface CalendarExportOptions {
   prodId?: string;
 }
 
+export interface CalendarFeedOptions {
+  prodId?: string;
+  calendarName?: string;
+}
+
 // ============================================================================
 // UTILITIES
 // ============================================================================
@@ -302,6 +307,92 @@ function generateVAlarm(alarm: CalendarAlarm): string {
   return lines.join('\r\n');
 }
 
+function generateVEvent(event: CalendarEventData, includeDefaultAlarms: boolean = true): string[] {
+  const lines: string[] = [];
+
+  lines.push('BEGIN:VEVENT');
+  lines.push(`UID:${event.uid}`);
+  lines.push(`DTSTAMP:${formatDateToICalUTC(new Date())}`);
+  lines.push(`DTSTART;${formatDateWithTimezone(event.startTime, event.timezone)}`);
+  lines.push(`DTEND;${formatDateWithTimezone(event.endTime, event.timezone)}`);
+  lines.push(foldLine(`SUMMARY:${escapeICalText(event.title)}`));
+
+  if (event.description) {
+    lines.push(foldLine(`DESCRIPTION:${escapeICalText(event.description)}`));
+  }
+
+  const locationString = buildLocationString(event.location);
+  if (locationString) {
+    lines.push(foldLine(`LOCATION:${escapeICalText(locationString)}`));
+  }
+
+  if (event.location.videoConferenceUrl) {
+    lines.push(...buildConferenceData(event.location));
+  }
+
+  if (event.url) {
+    lines.push(`URL:${event.url}`);
+  }
+
+  if (event.organizer.name) {
+    lines.push(`ORGANIZER;CN=${escapeICalText(event.organizer.name)}:mailto:${event.organizer.email}`);
+  } else {
+    lines.push(`ORGANIZER:mailto:${event.organizer.email}`);
+  }
+
+  if (event.attendees && event.attendees.length > 0) {
+    for (const attendee of event.attendees) {
+      const parts: string[] = ['ATTENDEE'];
+
+      if (attendee.name) {
+        parts.push(`CN=${escapeICalText(attendee.name)}`);
+      }
+      if (attendee.role) {
+        parts.push(`ROLE=${attendee.role}`);
+      }
+      if (attendee.partstat) {
+        parts.push(`PARTSTAT=${attendee.partstat}`);
+      }
+      if (attendee.rsvp !== undefined) {
+        parts.push(`RSVP=${attendee.rsvp ? 'TRUE' : 'FALSE'}`);
+      }
+
+      const attendeeLine = parts.join(';') + `:mailto:${attendee.email}`;
+      lines.push(foldLine(attendeeLine));
+    }
+  }
+
+  if (event.status) {
+    lines.push(`STATUS:${event.status}`);
+  }
+
+  if (event.sequence !== undefined) {
+    lines.push(`SEQUENCE:${event.sequence}`);
+  }
+
+  if (event.priority !== undefined) {
+    lines.push(`PRIORITY:${event.priority}`);
+  }
+
+  if (event.categories && event.categories.length > 0) {
+    lines.push(`CATEGORIES:${event.categories.map(c => escapeICalText(c)).join(',')}`);
+  }
+
+  if (event.alarms && event.alarms.length > 0) {
+    for (const alarm of event.alarms) {
+      lines.push(generateVAlarm(alarm));
+    }
+  } else if (includeDefaultAlarms) {
+    lines.push(generateVAlarm({ action: 'DISPLAY', triggerMinutesBefore: 1440 }));
+    lines.push(generateVAlarm({ action: 'DISPLAY', triggerMinutesBefore: 60 }));
+  }
+
+  lines.push('TRANSP:OPAQUE');
+  lines.push('END:VEVENT');
+
+  return lines;
+}
+
 /**
  * Generate a complete iCal calendar event
  */
@@ -325,105 +416,37 @@ export function generateICalEvent(
   // Add timezone information
   lines.push(generateVTimezone(event.timezone));
 
-  // Start VEVENT
-  lines.push('BEGIN:VEVENT');
-
-  // Core event properties
-  lines.push(`UID:${event.uid}`);
-  lines.push(`DTSTAMP:${formatDateToICalUTC(new Date())}`);
-  lines.push(`DTSTART;${formatDateWithTimezone(event.startTime, event.timezone)}`);
-  lines.push(`DTEND;${formatDateWithTimezone(event.endTime, event.timezone)}`);
-  lines.push(foldLine(`SUMMARY:${escapeICalText(event.title)}`));
-
-  // Optional properties
-  if (event.description) {
-    lines.push(foldLine(`DESCRIPTION:${escapeICalText(event.description)}`));
-  }
-
-  // Location
-  const locationString = buildLocationString(event.location);
-  if (locationString) {
-    lines.push(foldLine(`LOCATION:${escapeICalText(locationString)}`));
-  }
-
-  // Conference data for video meetings
-  if (event.location.videoConferenceUrl) {
-    lines.push(...buildConferenceData(event.location));
-  }
-
-  // URL
-  if (event.url) {
-    lines.push(`URL:${event.url}`);
-  }
-
-  // Organizer
-  if (event.organizer.name) {
-    lines.push(`ORGANIZER;CN=${escapeICalText(event.organizer.name)}:mailto:${event.organizer.email}`);
-  } else {
-    lines.push(`ORGANIZER:mailto:${event.organizer.email}`);
-  }
-
-  // Attendees
-  if (event.attendees && event.attendees.length > 0) {
-    for (const attendee of event.attendees) {
-      const parts: string[] = ['ATTENDEE'];
-
-      if (attendee.name) {
-        parts.push(`CN=${escapeICalText(attendee.name)}`);
-      }
-      if (attendee.role) {
-        parts.push(`ROLE=${attendee.role}`);
-      }
-      if (attendee.partstat) {
-        parts.push(`PARTSTAT=${attendee.partstat}`);
-      }
-      if (attendee.rsvp !== undefined) {
-        parts.push(`RSVP=${attendee.rsvp ? 'TRUE' : 'FALSE'}`);
-      }
-
-      const attendeeLine = parts.join(';') + `:mailto:${attendee.email}`;
-      lines.push(foldLine(attendeeLine));
-    }
-  }
-
-  // Status
-  if (event.status) {
-    lines.push(`STATUS:${event.status}`);
-  }
-
-  // Sequence (for updates)
-  if (event.sequence !== undefined) {
-    lines.push(`SEQUENCE:${event.sequence}`);
-  }
-
-  // Priority
-  if (event.priority !== undefined) {
-    lines.push(`PRIORITY:${event.priority}`);
-  }
-
-  // Categories
-  if (event.categories && event.categories.length > 0) {
-    lines.push(`CATEGORIES:${event.categories.map(c => escapeICalText(c)).join(',')}`);
-  }
-
-  // Alarms
-  if (event.alarms && event.alarms.length > 0) {
-    for (const alarm of event.alarms) {
-      lines.push(generateVAlarm(alarm));
-    }
-  } else {
-    // Default alarms: 1 day and 1 hour before
-    lines.push(generateVAlarm({ action: 'DISPLAY', triggerMinutesBefore: 1440 })); // 24 hours
-    lines.push(generateVAlarm({ action: 'DISPLAY', triggerMinutesBefore: 60 }));   // 1 hour
-  }
-
-  // Transparency (for calendar free/busy)
-  lines.push('TRANSP:OPAQUE');
-
-  // End VEVENT
-  lines.push('END:VEVENT');
+  lines.push(...generateVEvent(event));
   lines.push('END:VCALENDAR');
 
+  return lines.join('\r\n');
+}
+
+export function generateICalFeed(events: CalendarEventData[], options: CalendarFeedOptions = {}): string {
+  const {
+    prodId = '-//GovernanceOS//Board Governance Platform//EN',
+    calendarName = 'BoardApp Meetings',
+  } = options;
+
+  const uniqueTimezones = Array.from(new Set(events.map((event) => event.timezone)));
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    `PRODID:${prodId}`,
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    foldLine(`X-WR-CALNAME:${escapeICalText(calendarName)}`),
+  ];
+
+  uniqueTimezones.forEach((timezone) => {
+    lines.push(generateVTimezone(timezone));
+  });
+
+  events.forEach((event) => {
+    lines.push(...generateVEvent(event, false));
+  });
+
+  lines.push('END:VCALENDAR');
   return lines.join('\r\n');
 }
 

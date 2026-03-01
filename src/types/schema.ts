@@ -745,6 +745,19 @@ export interface CalendarConnection {
   updatedAt: Timestamp;
 }
 
+
+export interface CalendarSubscription {
+  id: string;
+  tenantId: string;
+  userId: string;
+  scope: 'tenant' | 'boardroom';
+  boardroomId?: string;
+  tokenHash: string;
+  createdAt: Timestamp;
+  rotatedAt?: Timestamp;
+  revokedAt?: Timestamp;
+}
+
 // ============================================================================
 // DECISION REGISTER - Sub-collection (/tenants/{tenantId}/decisions/{decisionId})
 // ============================================================================

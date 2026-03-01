@@ -13,6 +13,7 @@ import {
   generateMeetingICalEvent,
   generateMeetingUpdateICalEvent,
   generateMeetingCancellationICalEvent,
+  generateICalFeed,
   generateMeetingCalendarUid,
   parseICalEvent,
   createICalDataUrl,
@@ -298,6 +299,38 @@ describe('Calendar Service', () => {
       // Should have 3 alarms: 24h, 1h, 15min
       const alarmMatches = ical.match(/BEGIN:VALARM/g);
       expect(alarmMatches?.length).toBe(3);
+    });
+  });
+
+
+  describe('generateICalFeed', () => {
+    it('should generate a VCALENDAR containing multiple VEVENT entries', () => {
+      const ical = generateICalFeed([
+        {
+          uid: 'meeting-1@boardapp',
+          title: 'Board Meeting One',
+          startTime: new Date('2024-02-15T09:00:00Z'),
+          endTime: new Date('2024-02-15T10:00:00Z'),
+          timezone: 'Europe/Stockholm',
+          location: { type: 'physical', room: 'Room A' },
+          organizer: { email: 'board@company.com' },
+        },
+        {
+          uid: 'meeting-2@boardapp',
+          title: 'Board Meeting Two',
+          startTime: new Date('2024-02-16T09:00:00Z'),
+          endTime: new Date('2024-02-16T10:00:00Z'),
+          timezone: 'Europe/Stockholm',
+          location: { type: 'virtual', videoConferenceUrl: 'https://meet.example.com/2' },
+          organizer: { email: 'board@company.com' },
+        },
+      ]);
+
+      expect(ical).toContain('BEGIN:VCALENDAR');
+      expect(ical).toContain('METHOD:PUBLISH');
+      expect(ical.match(/BEGIN:VEVENT/g)?.length).toBe(2);
+      expect(ical).toContain('UID:meeting-1@boardapp');
+      expect(ical).toContain('UID:meeting-2@boardapp');
     });
   });
 

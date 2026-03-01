@@ -15,6 +15,8 @@ import {
   Unplug,
   Calendar,
   AlertCircle,
+  Copy,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,6 +105,10 @@ export default function SettingsPage() {
   const [googleDisconnecting, setGoogleDisconnecting] = useState(false);
 
   const [calendarMessage, setCalendarMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [subscriptionUrls, setSubscriptionUrls] = useState<{ webcalUrl: string; httpsUrl: string } | null>(null);
+  const [subscriptionBusy, setSubscriptionBusy] = useState(false);
+  const [subscriptionCopied, setSubscriptionCopied] = useState<'webcal' | 'https' | null>(null);
 
   // Check URL params for integration success/error messages
   const searchParams = useSearchParams();
@@ -268,6 +274,64 @@ export default function SettingsPage() {
       });
     } finally {
       setGoogleConnecting(false);
+    }
+  };
+
+
+  const handleRotateSubscription = async () => {
+    setSubscriptionBusy(true);
+    setCalendarMessage(null);
+    try {
+      const response = await fetch('/api/calendar/subscriptions/rotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, scope: 'tenant' }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to rotate subscription');
+      }
+
+      setSubscriptionUrls({ webcalUrl: data.webcalUrl, httpsUrl: data.httpsUrl });
+      setCalendarMessage({ type: 'success', text: 'Calendar feed token rotated. Update your calendar subscription URL.' });
+    } catch (err) {
+      setCalendarMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to rotate subscription' });
+    } finally {
+      setSubscriptionBusy(false);
+    }
+  };
+
+  const handleRevokeSubscription = async () => {
+    setSubscriptionBusy(true);
+    setCalendarMessage(null);
+    try {
+      const response = await fetch('/api/calendar/subscriptions/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, scope: 'tenant' }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to revoke subscription');
+      }
+
+      setSubscriptionUrls(null);
+      setCalendarMessage({ type: 'success', text: data.revoked > 0 ? 'Calendar subscription revoked.' : 'No active subscription found to revoke.' });
+    } catch (err) {
+      setCalendarMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to revoke subscription' });
+    } finally {
+      setSubscriptionBusy(false);
+    }
+  };
+
+  const handleCopyUrl = async (url: string, kind: 'webcal' | 'https') => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setSubscriptionCopied(kind);
+      setTimeout(() => setSubscriptionCopied(null), 1500);
+    } catch {
+      setCalendarMessage({ type: 'error', text: 'Unable to copy URL. Please copy it manually.' });
     }
   };
 
@@ -894,6 +958,55 @@ export default function SettingsPage() {
                     {calendarMessage.text}
                   </div>
                 )}
+
+
+                <div className="rounded-lg border p-4 space-y-4 bg-muted/20">
+                  <div>
+                    <p className="font-medium">BoardApp calendar subscription (ICS/Webcal)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Subscribe from Apple Calendar, Outlook, or Google Calendar using a private tokenized URL.
+                    </p>
+                  </div>
+
+                  {subscriptionUrls ? (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="webcal-url">Webcal URL</Label>
+                        <div className="flex gap-2">
+                          <Input id="webcal-url" readOnly value={subscriptionUrls.webcalUrl} />
+                          <Button type="button" variant="outline" onClick={() => handleCopyUrl(subscriptionUrls.webcalUrl, 'webcal')}>
+                            {subscriptionCopied === 'webcal' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            <span className="ml-1">Copy</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="https-url">HTTPS URL</Label>
+                        <div className="flex gap-2">
+                          <Input id="https-url" readOnly value={subscriptionUrls.httpsUrl} />
+                          <Button type="button" variant="outline" onClick={() => handleCopyUrl(subscriptionUrls.httpsUrl, 'https')}>
+                            {subscriptionCopied === 'https' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            <span className="ml-1">Copy</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No active calendar subscription URL in this session. Generate one to subscribe.</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" onClick={handleRotateSubscription} disabled={subscriptionBusy}>
+                      {subscriptionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      <span className="ml-1">{subscriptionUrls ? 'Rotate Token' : 'Generate URL'}</span>
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleRevokeSubscription} disabled={subscriptionBusy}>
+                      <Unplug className="h-4 w-4" />
+                      <span className="ml-1">Revoke</span>
+                    </Button>
+                  </div>
+                </div>
 
                 {/* Microsoft 365 / Outlook */}
                 <div className="flex items-center justify-between p-4 rounded-lg border">
