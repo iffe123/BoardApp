@@ -24,14 +24,4 @@
 - **Decision**: Use AI to summarize, draft, and highlight issues, with explicit human approval for final records.
 - **Why**: Governance workflows require accountability, explainability, and legal caution.
 
-## ADR-PR-02 Minutes review and agenda-scoped comments
-- **Date:** 2026-03-01
-- **Context:** Meeting minutes required a lightweight collaborative review workflow with explicit reviewer states and actionable feedback at the agenda item level.
-- **Decision:** Added `minutesReviews` and `minutesComments` as subcollections under each meeting (`tenants/{tenantId}/meetings/{meetingId}`), with one active review at a time and historical review retention.
-- **Rationale:**
-  - Keeping review/comments nested under meeting preserves tenant + meeting scoping and simplifies auth checks.
-  - Agenda item scoped comments (`agendaItemId`) give direct traceability from each minute item to its feedback and support count badges in the UI.
-  - Flat comments are intentionally chosen for v1 to keep read/write paths and indexes simple while still enabling resolve status and change-request signaling.
-- **Consequences:**
-  - Reviewer state transitions (`pending` → `approved` / `changes_requested`) can automatically drive overall review status.
-  - Future threaded comments can be added by introducing `parentCommentId` without migrating existing comment semantics.
+- 2026-03-01: Adopted WebAuthn as a step-up factor (not passwordless) for tenant policy enforcement. This preserves existing Firebase first-factor flows while enabling passkey/YubiKey enforcement per tenant and role.
