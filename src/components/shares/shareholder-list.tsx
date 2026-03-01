@@ -56,6 +56,8 @@ interface ShareholderListProps {
   onUpdateShareholder: (id: string, data: Partial<ShareholderFormData>) => Promise<void>;
   onDeleteShareholder: (id: string) => Promise<void>;
   isAdmin: boolean;
+  isCreating?: boolean;
+  actionError?: string;
 }
 
 interface ShareholderFormData {
@@ -92,7 +94,9 @@ function ShareholderFormDialog({
   title,
   description,
 }: ShareholderFormDialogProps) {
-  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [formData, setFormData] = useState<ShareholderFormData>({
     name: initialData?.name || '',
     type: initialData?.type || 'individual',
@@ -119,7 +123,47 @@ function ShareholderFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await submitAction.execute(formData);
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      setValidationError('Namn är obligatoriskt.');
+      return;
+    }
+
+    const hasAddressDetails = Boolean(
+      formData.address?.street.trim() || formData.address?.city.trim() || formData.address?.postalCode.trim()
+    );
+
+    const normalizedAddress = formData.address && hasAddressDetails
+      ? {
+          street: formData.address.street.trim(),
+          city: formData.address.city.trim(),
+          postalCode: formData.address.postalCode.trim(),
+          country: formData.address.country.trim(),
+        }
+      : undefined;
+
+    if (normalizedAddress && (!normalizedAddress.street || !normalizedAddress.city || !normalizedAddress.postalCode || !normalizedAddress.country)) {
+      setValidationError('Fyll i hela adressen eller lämna alla adressfält tomma.');
+      return;
+    }
+
+    setValidationError('');
+    setSubmitError('');
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        ...formData,
+        name: trimmedName,
+        organizationNumber: formData.organizationNumber?.trim() || undefined,
+        email: formData.email?.trim() || undefined,
+        address: normalizedAddress,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Kunde inte spara aktieägaren.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -130,6 +174,9 @@ function ShareholderFormDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {(validationError || submitError) && (
+            <p className="text-sm text-destructive">{validationError || submitError}</p>
+          )}
           <div className="space-y-2">
             <Label htmlFor="name">Namn *</Label>
             <Input
@@ -271,6 +318,8 @@ export function ShareholderList({
   onUpdateShareholder,
   onDeleteShareholder,
   isAdmin,
+  isCreating,
+  actionError,
 }: ShareholderListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -295,7 +344,7 @@ export function ShareholderList({
             </CardDescription>
           </div>
           {isAdmin && (
-            <Button onClick={() => setCreateDialogOpen(true)}>
+            <Button onClick={() => setCreateDialogOpen(true)} disabled={isCreating}>
               <Plus className="h-4 w-4 mr-2" />
               Ny aktieägare
             </Button>
@@ -303,6 +352,12 @@ export function ShareholderList({
         </div>
       </CardHeader>
       <CardContent>
+        {actionError && (
+          <p className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {actionError}
+          </p>
+        )}
+
         {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
