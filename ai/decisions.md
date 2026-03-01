@@ -23,3 +23,5 @@
 ## D-006: AI as copilot, not autopilot
 - **Decision**: Use AI to summarize, draft, and highlight issues, with explicit human approval for final records.
 - **Why**: Governance workflows require accountability, explainability, and legal caution.
+
+- 2026-03-01: Adopted WebAuthn as a step-up factor (not passwordless) for tenant policy enforcement. This preserves existing Firebase first-factor flows while enabling passkey/YubiKey enforcement per tenant and role.
