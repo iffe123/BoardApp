@@ -41,6 +41,8 @@ interface TransactionFormProps {
   transactions: ShareTransaction[];
   onCreateTransaction: (data: TransactionFormData) => Promise<void>;
   isAdmin: boolean;
+  isCreating?: boolean;
+  actionError?: string;
 }
 
 export interface TransactionFormData {
@@ -114,6 +116,8 @@ export function TransactionForm({
   transactions,
   onCreateTransaction,
   isAdmin,
+  isCreating,
+  actionError,
 }: TransactionFormProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,6 +155,8 @@ export function TransactionForm({
         nominalValue: 1,
         votesPerShare: 1,
       });
+    } catch {
+      // Error feedback is rendered via actionError from action audit harness.
     } finally {
       setIsSubmitting(false);
     }
@@ -177,7 +183,7 @@ export function TransactionForm({
               </CardDescription>
             </div>
             {isAdmin && (
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button onClick={() => setDialogOpen(true)} disabled={isCreating}>
                 <Plus className="h-4 w-4 mr-2" />
                 Ny transaktion
               </Button>
@@ -250,6 +256,9 @@ export function TransactionForm({
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {actionError && (
+              <p className="text-sm text-destructive">{actionError}</p>
+            )}
             {/* Transaction Type */}
             <div className="space-y-2">
               <Label>Transaktionstyp *</Label>

@@ -19,6 +19,7 @@ import { ShareholderList } from '@/components/shares/shareholder-list';
 import { TransactionForm } from '@/components/shares/transaction-form';
 import type { TransactionFormData } from '@/components/shares/transaction-form';
 import { ShareRegistryExport } from '@/components/shares/share-registry-export';
+import { useActionAudit } from '@/hooks/use-action-audit';
 import type { CapTableSummary, Shareholder, ShareTransaction } from '@/types/schema';
 
 export default function ShareRegistryPage() {
@@ -33,6 +34,7 @@ export default function ShareRegistryPage() {
   const [transactions, setTransactions] = useState<ShareTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const { runAction, statusByAction, lastErrorByAction, toastMessage, dismissToast } = useActionAudit();
 
   const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
     // Get the current user's ID token from Firebase Auth
@@ -83,66 +85,106 @@ export default function ShareRegistryPage() {
     email?: string;
     address?: { street: string; city: string; postalCode: string; country: string };
   }) => {
-    const headers = await getAuthHeaders();
-    const res = await fetch('/api/shareholders', {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId, ...data }),
-    });
+    await runAction(
+      {
+        tenantId,
+        action: 'shareholder.create',
+        successMessage: 'Aktieägaren sparades.',
+        errorMessage: 'Kunde inte skapa aktieägare.',
+      },
+      async () => {
+        const headers = await getAuthHeaders();
+        const res = await fetch('/api/shareholders', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId, ...data }),
+        });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to create shareholder');
-    }
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to create shareholder');
+        }
 
-    await fetchData();
+        await fetchData();
+      }
+    );
   };
 
   const handleUpdateShareholder = async (id: string, data: Record<string, unknown>) => {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`/api/shareholders/${id}`, {
-      method: 'PUT',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId, ...data }),
-    });
+    await runAction(
+      {
+        tenantId,
+        action: 'shareholder.update',
+        successMessage: 'Aktieägaren uppdaterades.',
+        errorMessage: 'Kunde inte uppdatera aktieägare.',
+      },
+      async () => {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/shareholders/${id}`, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId, ...data }),
+        });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to update shareholder');
-    }
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to update shareholder');
+        }
 
-    await fetchData();
+        await fetchData();
+      }
+    );
   };
 
   const handleDeleteShareholder = async (id: string) => {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`/api/shareholders/${id}?tenantId=${tenantId}`, {
-      method: 'DELETE',
-      headers,
-    });
+    await runAction(
+      {
+        tenantId,
+        action: 'shareholder.delete',
+        successMessage: 'Aktieägaren togs bort.',
+        errorMessage: 'Kunde inte ta bort aktieägare.',
+      },
+      async () => {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/shareholders/${id}?tenantId=${tenantId}`, {
+          method: 'DELETE',
+          headers,
+        });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to delete shareholder');
-    }
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to delete shareholder');
+        }
 
-    await fetchData();
+        await fetchData();
+      }
+    );
   };
 
   const handleCreateTransaction = async (data: TransactionFormData) => {
-    const headers = await getAuthHeaders();
-    const res = await fetch('/api/shares/transactions', {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenantId, ...data }),
-    });
+    await runAction(
+      {
+        tenantId,
+        action: 'share.transaction.create',
+        successMessage: 'Transaktionen registrerades.',
+        errorMessage: 'Kunde inte registrera transaktionen.',
+      },
+      async () => {
+        const headers = await getAuthHeaders();
+        const res = await fetch('/api/shares/transactions', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId, ...data }),
+        });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Failed to create transaction');
-    }
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to create transaction');
+        }
 
-    await fetchData();
+        await fetchData();
+      }
+    );
   };
 
   const handleExport = async (format: 'csv' | 'json') => {
@@ -198,6 +240,13 @@ export default function ShareRegistryPage() {
   return (
     <div className="flex-1 p-8">
       {/* Header */}
+      {toastMessage && (
+        <div className="mb-4 rounded-md border border-border bg-muted/50 px-4 py-3 text-sm flex items-center justify-between">
+          <span>{toastMessage}</span>
+          <Button variant="ghost" size="sm" onClick={dismissToast}>Stäng</Button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <BookOpen className="h-8 w-8" />
@@ -243,6 +292,8 @@ export default function ShareRegistryPage() {
             onUpdateShareholder={handleUpdateShareholder}
             onDeleteShareholder={handleDeleteShareholder}
             isAdmin={isAdmin}
+            isCreating={statusByAction['shareholder.create'] === 'loading'}
+            actionError={lastErrorByAction['shareholder.create'] || lastErrorByAction['shareholder.update'] || lastErrorByAction['shareholder.delete']}
           />
         </TabsContent>
 
@@ -252,6 +303,8 @@ export default function ShareRegistryPage() {
             transactions={transactions}
             onCreateTransaction={handleCreateTransaction}
             isAdmin={isAdmin}
+            actionError={lastErrorByAction['share.transaction.create']}
+            isCreating={statusByAction['share.transaction.create'] === 'loading'}
           />
         </TabsContent>
       </Tabs>
