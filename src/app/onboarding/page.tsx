@@ -8,6 +8,11 @@ import { useAuth } from '@/contexts/auth-context';
 import { collections, Timestamp, writeBatch, db } from '@/lib/firebase';
 import type { Tenant, Member } from '@/types/schema';
 
+
+function generateTenantId() {
+  return `tenant_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, refreshTenantClaims, setCurrentTenant } = useAuth();
@@ -36,7 +41,7 @@ export default function OnboardingPage() {
 
     try {
       // Generate a tenant ID
-      const tenantId = `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const tenantId = generateTenantId();
 
       // Create the tenant document
       const tenant: Omit<Tenant, 'id'> = {
