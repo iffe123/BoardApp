@@ -220,6 +220,13 @@ export const collections = {
   signatureAudits: (tenantId: string) => collection(db, 'tenants', tenantId, 'signature_audits'),
   notifications: (tenantId: string) => collection(db, 'tenants', tenantId, 'notifications'),
   signatures: (tenantId: string) => collection(db, 'tenants', tenantId, 'signatures'),
+  signatureCases: () => collection(db, 'signatureCases'),
+  signatureCase: (caseId: string) => doc(db, 'signatureCases', caseId),
+  signatureCaseSigners: (caseId: string) => collection(db, 'signatureCases', caseId, 'signers'),
+  signatureCaseSigner: (caseId: string, signerId: string) => doc(db, 'signatureCases', caseId, 'signers', signerId),
+  signatureCaseEvents: (caseId: string) => collection(db, 'signatureCases', caseId, 'events'),
+  signatureInboxItems: (userId: string) => collection(db, 'signatureInbox', userId, 'items'),
+  signatureInboxItem: (userId: string, caseId: string) => doc(db, 'signatureInbox', userId, 'items', caseId),
   signature: (tenantId: string, signatureId: string) => doc(db, 'tenants', tenantId, 'signatures', signatureId),
 
   // Share Registry (Aktiebok)
