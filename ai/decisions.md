@@ -25,3 +25,13 @@
 - **Why**: Governance workflows require accountability, explainability, and legal caution.
 
 - 2026-03-01: Adopted WebAuthn as a step-up factor (not passwordless) for tenant policy enforcement. This preserves existing Firebase first-factor flows while enabling passkey/YubiKey enforcement per tenant and role.
+
+## D-007: Signature Case Engine state machine
+- **Decision**: Introduce top-level `signatureCases/{caseId}` with `signers` and append-only `events` subcollections as the source of truth for signature orchestration.
+- **Why**: Supports multi-signer workflows, deterministic state transitions, and auditable immutable event history.
+- **State model**:
+  - Case: `draft -> in_progress -> completed | canceled | expired`
+  - Signer: `pending | ready | signed | declined | expired`
+  - Sequential mode advances exactly one signer at a time; parallel mode marks all as ready at start.
+- **Decline policy (v1)**: A signer decline cancels the entire case immediately.
+- **Rationale for decline policy**: Avoid ambiguous legal state in v1 and provide a clear restart path with a new case.

@@ -30,6 +30,7 @@ import {
   CircleDot,
   BookOpen,
   FlaskConical,
+  PenLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,11 @@ const getNavItems = (tenantId: string): NavItem[] => [
     label: 'Documents',
     href: `/dashboard/${tenantId}/documents`,
     icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    label: 'Needs my signature',
+    href: `/dashboard/${tenantId}/signature-inbox`,
+    icon: <PenLine className="h-5 w-5" />,
   },
   {
     label: 'Financials',
