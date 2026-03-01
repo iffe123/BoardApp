@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatNumber } from '@/lib/utils';
 import type { Shareholder, ShareClass, ShareTransactionType, ShareTransaction } from '@/types/schema';
+import { useAsyncAction } from '@/hooks/use-async-action';
 
 // ============================================================================
 // TYPES
@@ -120,7 +121,7 @@ export function TransactionForm({
   actionError,
 }: TransactionFormProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState<TransactionFormData>({
     type: 'founding',
     date: new Date().toISOString().split('T')[0]!,
@@ -136,12 +137,11 @@ export function TransactionForm({
 
   const currentConfig = transactionTypeConfig[formData.type];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await onCreateTransaction(formData);
+  const submitAction = useAsyncAction({
+    action: onCreateTransaction,
+    onSuccess: async () => {
       setDialogOpen(false);
+      setFormError(null);
       // Reset form
       setFormData({
         type: 'founding',
@@ -466,6 +466,10 @@ export function TransactionForm({
               />
             </div>
 
+            {formError && (
+              <p className="text-sm text-destructive">{formError}</p>
+            )}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Avbryt
@@ -473,13 +477,13 @@ export function TransactionForm({
               <Button
                 type="submit"
                 disabled={
-                  isSubmitting ||
+                  submitAction.loading ||
                   !formData.toShareholderId ||
                   !formData.numberOfShares ||
                   !formData.description
                 }
               >
-                {isSubmitting ? 'Registrerar...' : 'Registrera transaktion'}
+                {submitAction.loading ? 'Registrerar...' : 'Registrera transaktion'}
               </Button>
             </DialogFooter>
           </form>

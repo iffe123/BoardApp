@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Shareholder } from '@/types/schema';
+import { useAsyncAction } from '@/hooks/use-async-action';
 
 // ============================================================================
 // TYPES
@@ -106,6 +107,17 @@ function ShareholderFormDialog({
       city: '',
       postalCode: '',
       country: 'Sverige',
+    },
+  });
+
+  const submitAction = useAsyncAction({
+    action: onSubmit,
+    onSuccess: async () => {
+      onOpenChange(false);
+      setFormError(null);
+    },
+    onError: async (error) => {
+      setFormError(error.message);
     },
   });
 
@@ -266,12 +278,16 @@ function ShareholderFormDialog({
             </div>
           </div>
 
+          {formError && (
+            <p className="text-sm text-destructive">{formError}</p>
+          )}
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Avbryt
             </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.name}>
-              {isSubmitting ? 'Sparar...' : 'Spara'}
+            <Button type="submit" disabled={submitAction.loading || !formData.name}>
+              {submitAction.loading ? 'Sparar...' : 'Spara'}
             </Button>
           </DialogFooter>
         </form>
