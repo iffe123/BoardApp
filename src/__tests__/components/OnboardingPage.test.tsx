@@ -62,6 +62,8 @@ const mockAuthContext = {
   isLoading: false,
   currentTenantId: null,
   tenantClaims: {},
+  refreshTenantClaims: jest.fn().mockResolvedValue(undefined),
+  setCurrentTenant: jest.fn().mockResolvedValue(undefined),
   error: null,
   clearError: jest.fn(),
 };
@@ -85,6 +87,8 @@ describe('OnboardingPage', () => {
     mockAuthContext.isLoading = false;
     mockAuthContext.currentTenantId = null;
     mockAuthContext.tenantClaims = {};
+    mockAuthContext.refreshTenantClaims.mockResolvedValue(undefined);
+    mockAuthContext.setCurrentTenant.mockResolvedValue(undefined);
   });
 
   describe('Initial Render', () => {
@@ -132,15 +136,14 @@ describe('OnboardingPage', () => {
       });
     });
 
-    it('should redirect to dashboard if user has existing tenants', async () => {
+    it('should stay on onboarding even if auth context has tenant metadata', () => {
       mockAuthContext.tenantClaims = { 'existing-tenant-id': 'owner' };
       mockAuthContext.currentTenantId = 'existing-tenant-id';
 
       render(<OnboardingPage />);
 
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard/existing-tenant-id');
-      });
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(screen.getByText('Welcome to GovernanceOS')).toBeInTheDocument();
     });
 
     it('should not redirect if user has no tenants', () => {
