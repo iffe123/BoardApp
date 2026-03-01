@@ -39,6 +39,7 @@ import {
   calculateTotalDuration,
 } from '@/lib/meeting-templates';
 import { useMembers } from '@/hooks/use-firestore';
+import { useAsyncAction } from '@/hooks/use-async-action';
 
 const roleLabels: Record<MemberRole, string> = {
   owner: 'Owner',
@@ -87,7 +88,6 @@ export default function NewMeetingPage() {
     return member.title || roleLabels[member.role] || member.userId;
   };
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>({
@@ -191,6 +191,53 @@ export default function NewMeetingPage() {
     }
   };
 
+
+  const createMeetingAction = useAsyncAction({
+    action: async () => {
+      const startDate = new Date(`${form.date}T${form.startTime}`);
+      const endDate = new Date(`${form.date}T${form.endTime}`);
+
+      const { auth } = await import('@/lib/firebase');
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch('/api/meetings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          tenantId,
+          title: form.title,
+          description: form.description,
+          meetingType: form.meetingType,
+          scheduledStart: startDate.toISOString(),
+          scheduledEnd: endDate.toISOString(),
+          timezone: 'Europe/Stockholm',
+          location: {
+            type: form.locationType,
+            address: form.address,
+            room: form.room,
+            meetingUrl: form.videoUrl,
+            platform: form.videoPlatform,
+          },
+          attendeeIds: form.selectedMemberIds,
+          quorumRequired: form.quorumRequired,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to create meeting');
+      }
+
+      return response.json();
+    },
+    onSuccess: async (createdMeeting) => {
+      router.push(`/dashboard/${tenantId}/meetings/${createdMeeting.id}`);
+    },
+    errorMessage: 'Failed to create meeting',
+  });
+
   const updateForm = (updates: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...updates }));
   };
@@ -205,19 +252,7 @@ export default function NewMeetingPage() {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-
-    try {
-      // In real app, save to Firestore
-      // const meetingId = await createMeeting(form);
-      const meetingId = 'new-meeting-' + Date.now();
-
-      router.push(`/dashboard/${tenantId}/meetings/${meetingId}`);
-    } catch (error) {
-      console.error('Error creating meeting:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await createMeetingAction.execute();
   };
 
   const isStep1Valid = form.title.trim().length > 0 && form.date && form.startTime && form.endTime;
@@ -677,11 +712,18 @@ export default function NewMeetingPage() {
               </div>
             )}
 
+            {createMeetingAction.error && (
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="inline h-4 w-4 mr-2" />
+                {createMeetingAction.error}
+              </div>
+            )}
+
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(2)}>
                 Back
               </Button>
-              <Button onClick={handleSubmit} disabled={!isStep3Valid} isLoading={isSubmitting}>
+              <Button onClick={handleSubmit} disabled={!isStep3Valid} isLoading={createMeetingAction.loading}>
                 Create Meeting
               </Button>
             </div>

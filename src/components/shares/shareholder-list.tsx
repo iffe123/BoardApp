@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Shareholder } from '@/types/schema';
+import { useAsyncAction } from '@/hooks/use-async-action';
 
 // ============================================================================
 // TYPES
@@ -91,7 +92,7 @@ function ShareholderFormDialog({
   title,
   description,
 }: ShareholderFormDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ShareholderFormData>({
     name: initialData?.name || '',
     type: initialData?.type || 'individual',
@@ -105,15 +106,20 @@ function ShareholderFormDialog({
     },
   });
 
+  const submitAction = useAsyncAction({
+    action: onSubmit,
+    onSuccess: async () => {
+      onOpenChange(false);
+      setFormError(null);
+    },
+    onError: async (error) => {
+      setFormError(error.message);
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await onSubmit(formData);
-      onOpenChange(false);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await submitAction.execute(formData);
   };
 
   return (
@@ -225,12 +231,16 @@ function ShareholderFormDialog({
             </div>
           </div>
 
+          {formError && (
+            <p className="text-sm text-destructive">{formError}</p>
+          )}
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Avbryt
             </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.name}>
-              {isSubmitting ? 'Sparar...' : 'Spara'}
+            <Button type="submit" disabled={submitAction.loading || !formData.name}>
+              {submitAction.loading ? 'Sparar...' : 'Spara'}
             </Button>
           </DialogFooter>
         </form>
