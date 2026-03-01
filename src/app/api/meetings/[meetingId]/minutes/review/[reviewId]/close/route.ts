@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getDoc, updateDoc } from 'firebase/firestore';
+import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
+import { collections, Timestamp } from '@/lib/firebase';
+import { getMeetingWithMember, isMinutesEditor } from '@/lib/minutes-review-service';
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { meetingId: string; reviewId: string } }
+) {
+  try {
+    const { user } = await verifySession(request);
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    if (!tenantId) return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
+    await verifyTenantAccess(user, tenantId);
+
+    const { meeting, member } = await getMeetingWithMember(tenantId, params.meetingId, user.uid);
+    if (!isMinutesEditor(meeting, member)) {
+      return NextResponse.json({ error: 'Only minutes editors can close review' }, { status: 403 });
+    }
+
+    const reviewRef = collections.minutesReview(tenantId, params.meetingId, params.reviewId);
+    const reviewSnap = await getDoc(reviewRef);
+    if (!reviewSnap.exists()) return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+
+    await updateDoc(reviewRef, { status: 'closed', closedAt: Timestamp.now() });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof AuthError) return authErrorResponse(error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to close review' }, { status: 500 });
+  }
+}

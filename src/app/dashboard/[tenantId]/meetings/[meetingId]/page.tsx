@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import {
   ArrowLeft,
   Calendar,
@@ -76,6 +77,7 @@ export default function MeetingDetailPage() {
   const tenantId = params.tenantId as string;
   const meetingId = params.meetingId as string;
 
+  const { user } = useAuth();
   const { data: fetchedMeeting, isLoading: meetingLoading } = useMeeting(tenantId, meetingId);
   const { data: members = [] } = useMembers(tenantId);
   const [meetingOverride, setMeetingOverride] = useState<Meeting | null>(null);
@@ -577,8 +579,13 @@ export default function MeetingDetailPage() {
               onUpdate={(minutes) => setMeetingOverride({ ...meeting, minutes })}
               onSign={async () => {}}
               onDistribute={async () => {}}
-              currentUserId={meeting.attendees[0]?.memberId || ''}
-              canEdit={true}
+              currentUserId={user?.uid || meeting.attendees[0]?.userId || ''}
+              currentUserName={user?.displayName || 'Member'}
+              canEdit={['owner','admin','chair','secretary'].includes(user?.uid ? (members.find((m) => m.userId === user.uid)?.role || '') : '')}
+              tenantId={tenantId}
+              meetingId={meetingId}
+              members={members}
+              authToken={null}
             />
           ) : meeting.status === 'completed' ? (
             <Card className="p-12 text-center">

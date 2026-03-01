@@ -357,6 +357,47 @@ export interface MeetingMinutes {
   contentHash?: string;
 }
 
+export type MinutesReviewStatus =
+  | 'draft'
+  | 'in_review'
+  | 'changes_requested'
+  | 'approved'
+  | 'closed';
+
+export type MinutesReviewerStatus = 'pending' | 'approved' | 'changes_requested';
+
+export interface MinutesReviewReviewer {
+  userId: string;
+  role?: string;
+  status: MinutesReviewerStatus;
+  respondedAt?: Timestamp;
+}
+
+export interface MinutesReview {
+  id: string;
+  tenantId: string;
+  meetingId: string;
+  status: MinutesReviewStatus;
+  requestedByUserId: string;
+  requestedAt: Timestamp;
+  closedAt?: Timestamp;
+  reviewers: MinutesReviewReviewer[];
+}
+
+export interface MinutesComment {
+  id: string;
+  tenantId: string;
+  meetingId: string;
+  agendaItemId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  type: 'comment' | 'change_request';
+  createdAt: Timestamp;
+  resolvedAt?: Timestamp;
+  resolvedByUserId?: string;
+}
+
 export interface MinuteItem {
   agendaItemId: string;
   orderIndex: number;
@@ -834,7 +875,16 @@ export interface Notification {
   userId: string;
   tenantId: string;
 
-  type: 'meeting_reminder' | 'document_shared' | 'signature_required' | 'task_assigned' | 'comment_added' | 'meeting_updated';
+  type:
+    | 'meeting_reminder'
+    | 'document_shared'
+    | 'signature_required'
+    | 'task_assigned'
+    | 'comment_added'
+    | 'meeting_updated'
+    | 'minutes_review_requested'
+    | 'minutes_review_changes_requested'
+    | 'minutes_review_approved';
   title: string;
   body: string;
 
