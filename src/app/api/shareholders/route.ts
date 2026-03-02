@@ -1,107 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { verifySession, verifyTenantAccess, verifyTenantRole, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
-import { checkRateLimit, RateLimits } from '@/lib/rate-limit';
-import { logger } from '@/lib/logger';
+import { z } from 'zod';
 import { shareholdersDAL } from '@/lib/dal/shareholders';
-import { ShareholderCreateSchema } from '@/types/schema';
+import { logger } from '@/lib/logger';
+import { AuthError, authErrorResponse, verifySession, verifyTenantAccess } from '@/lib/auth/verify-session';
+import { requireTenantAccess, withIdempotency, writeAuditEvent } from '@/lib/actions/server';
+import { toErrorResponse } from '@/lib/actions/errors';
 
-// GET /api/shareholders - List shareholders for a tenant
+const createShareholderSchema = z.object({
+  tenantId: z.string().min(1),
+  name: z.string().min(1),
+  type: z.enum(['individual', 'company', 'fund']),
+  organizationNumber: z.string().optional(),
+  email: z.string().email().optional(),
+  address: z.object({
+    street: z.string().optional(),
+    postalCode: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+  }).optional(),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const { user } = await verifySession(request);
-
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
-    const activeOnly = searchParams.get('activeOnly') !== 'false';
-
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
-      );
-    }
-
+    const tenantId = new URL(request.url).searchParams.get('tenantId');
+    if (!tenantId) return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
     await verifyTenantAccess(user, tenantId);
-
-    const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded. Try again later.' },
-        { status: 429 }
-      );
-    }
-
-    const shareholders = activeOnly
-      ? await shareholdersDAL.listActive(tenantId)
-      : await shareholdersDAL.list(tenantId);
-
-    return NextResponse.json({
-      shareholders,
-      total: shareholders.length,
-    });
+    const shareholders = await shareholdersDAL.listActive(tenantId);
+    return NextResponse.json({ shareholders, total: shareholders.length });
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     logger.error('Error fetching shareholders', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch shareholders' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch shareholders' }, { status: 500 });
   }
 }
 
-// POST /api/shareholders - Create a new shareholder
 export async function POST(request: NextRequest) {
   try {
-    const { user } = await verifySession(request);
-
     const body = await request.json();
-    const { tenantId, ...shareholderData } = body;
+    const parsed = createShareholderSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 422 });
 
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
-      );
-    }
+    const user = await requireTenantAccess(request, parsed.data.tenantId, ['owner', 'admin']);
+    const idempotencyKey = request.headers.get('x-idempotency-key');
 
-    await verifyTenantRole(user, tenantId, ['owner', 'admin']);
-
-    const rateCheck = checkRateLimit(`api:${user.uid}`, RateLimits.api);
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded. Try again later.' },
-        { status: 429 }
-      );
-    }
-
-    const parsed = ShareholderCreateSchema.safeParse(shareholderData);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
-
-    const shareholderId = uuidv4();
-    await shareholdersDAL.create(tenantId, shareholderId, {
-      ...parsed.data,
-      tenantId,
-      isActive: true,
+    const result = await withIdempotency(parsed.data.tenantId, idempotencyKey, async () => {
+      const shareholderId = uuidv4();
+      await shareholdersDAL.create(parsed.data.tenantId, shareholderId, {
+        ...parsed.data,
+        tenantId: parsed.data.tenantId,
+        isActive: true,
+        createdBy: user.uid,
+        updatedBy: user.uid,
+      });
+      await writeAuditEvent(parsed.data.tenantId, user.uid, 'shareholder.create', 'success', { shareholderId });
+      return { shareholderId };
     });
 
-    return NextResponse.json({
-      id: shareholderId,
-      tenantId,
-      ...parsed.data,
-      isActive: true,
-    }, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
-    logger.error('Error creating shareholder', error);
-    return NextResponse.json(
-      { error: 'Failed to create shareholder' },
-      { status: 500 }
-    );
+    const mapped = toErrorResponse(error);
+    return NextResponse.json(mapped.body, { status: mapped.status });
   }
 }

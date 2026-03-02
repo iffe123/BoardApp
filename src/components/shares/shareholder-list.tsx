@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -94,8 +95,6 @@ function ShareholderFormDialog({
   title,
   description,
 }: ShareholderFormDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [formData, setFormData] = useState<ShareholderFormData>({
     name: initialData?.name || '',
@@ -114,10 +113,10 @@ function ShareholderFormDialog({
     action: onSubmit,
     onSuccess: async () => {
       onOpenChange(false);
-      setFormError(null);
+setValidationError('');
     },
     onError: async (error) => {
-      setFormError(error.message);
+setValidationError(error.message);
     },
   });
 
@@ -148,22 +147,13 @@ function ShareholderFormDialog({
     }
 
     setValidationError('');
-    setSubmitError('');
-    setIsSubmitting(true);
-    try {
-      await onSubmit({
-        ...formData,
-        name: trimmedName,
-        organizationNumber: formData.organizationNumber?.trim() || undefined,
-        email: formData.email?.trim() || undefined,
-        address: normalizedAddress,
-      });
-      onOpenChange(false);
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Kunde inte spara aktieägaren.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    await submitAction.execute({
+      ...formData,
+      name: trimmedName,
+      organizationNumber: formData.organizationNumber?.trim() || undefined,
+      email: formData.email?.trim() || undefined,
+      address: normalizedAddress,
+    });
   };
 
   return (
@@ -174,8 +164,8 @@ function ShareholderFormDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {(validationError || submitError) && (
-            <p className="text-sm text-destructive">{validationError || submitError}</p>
+          {validationError && (
+            <p className="text-sm text-destructive">{validationError}</p>
           )}
           <div className="space-y-2">
             <Label htmlFor="name">Namn *</Label>
@@ -278,17 +268,13 @@ function ShareholderFormDialog({
             </div>
           </div>
 
-          {formError && (
-            <p className="text-sm text-destructive">{formError}</p>
-          )}
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Avbryt
             </Button>
-            <Button type="submit" disabled={submitAction.loading || !formData.name}>
-              {submitAction.loading ? 'Sparar...' : 'Spara'}
-            </Button>
+            <ActionButton type="submit" loading={submitAction.loading} disabled={!formData.name}>
+              Spara
+            </ActionButton>
           </DialogFooter>
         </form>
       </DialogContent>

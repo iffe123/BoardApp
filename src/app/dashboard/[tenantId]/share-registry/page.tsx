@@ -20,6 +20,7 @@ import { TransactionForm } from '@/components/shares/transaction-form';
 import type { TransactionFormData } from '@/components/shares/transaction-form';
 import { ShareRegistryExport } from '@/components/shares/share-registry-export';
 import { useActionAudit } from '@/hooks/use-action-audit';
+import { runAction as runActionRequest } from '@/lib/actions/client';
 import type { CapTableSummary, Shareholder, ShareTransaction } from '@/types/schema';
 
 export default function ShareRegistryPage() {
@@ -94,16 +95,12 @@ export default function ShareRegistryPage() {
       },
       async () => {
         const headers = await getAuthHeaders();
-        const res = await fetch('/api/shareholders', {
+        await runActionRequest({
+          url: '/api/shareholders',
           method: 'POST',
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenantId, ...data }),
+          headers,
+          body: { tenantId, ...data },
         });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || 'Failed to create shareholder');
-        }
 
         await fetchData();
       }
@@ -120,16 +117,12 @@ export default function ShareRegistryPage() {
       },
       async () => {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/api/shareholders/${id}`, {
-          method: 'PUT',
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenantId, ...data }),
+        await runActionRequest({
+          url: `/api/shareholders/${id}`,
+          method: 'PATCH',
+          headers,
+          body: { tenantId, ...data },
         });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || 'Failed to update shareholder');
-        }
 
         await fetchData();
       }
@@ -146,15 +139,12 @@ export default function ShareRegistryPage() {
       },
       async () => {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/api/shareholders/${id}?tenantId=${tenantId}`, {
+        await runActionRequest({
+          url: `/api/shareholders/${id}`,
           method: 'DELETE',
           headers,
+          body: { tenantId },
         });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || 'Failed to delete shareholder');
-        }
 
         await fetchData();
       }
