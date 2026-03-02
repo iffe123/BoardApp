@@ -155,12 +155,8 @@ export function TransactionForm({
         nominalValue: 1,
         votesPerShare: 1,
       });
-    } catch {
-      // Error feedback is rendered via actionError from action audit harness.
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+  });
 
   const updateShareCount = (from: number, to: number) => {
     setFormData({
