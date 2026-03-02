@@ -100,6 +100,9 @@ export async function POST(request: NextRequest) {
       actionItems,
       implementationDeadline,
       relatedDocumentIds,
+      impactCategory,
+      expectedImpact,
+      linkedKpiIds,
     } = body;
 
     // Validate required fields
@@ -244,6 +247,12 @@ export async function extractDecisionsFromMeeting(
           implementationStatus: 'pending',
           relatedDocumentIds: item.documentIds || [],
           relatedDecisionIds: [],
+          impactCategory: 'other',
+          expectedImpact: undefined,
+          linkedKpiIds: [],
+      impactCategory: impactCategory || 'other',
+      expectedImpact: expectedImpact || undefined,
+      linkedKpiIds: linkedKpiIds || [],
           decidedAt: Timestamp.now(),
           recordedBy: userId,
           createdAt: Timestamp.now(),

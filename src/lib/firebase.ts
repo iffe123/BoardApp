@@ -211,6 +211,8 @@ export const collections = {
 
   decisions: (tenantId: string) => collection(db, 'tenants', tenantId, 'decisions'),
   decision: (tenantId: string, decisionId: string) => doc(db, 'tenants', tenantId, 'decisions', decisionId),
+  actions: (tenantId: string) => collection(db, 'tenants', tenantId, 'actions'),
+  action: (tenantId: string, actionId: string) => doc(db, 'tenants', tenantId, 'actions', actionId),
 
   templates: (tenantId: string) => collection(db, 'tenants', tenantId, 'templates'),
   template: (tenantId: string, templateId: string) => doc(db, 'tenants', tenantId, 'templates', templateId),
