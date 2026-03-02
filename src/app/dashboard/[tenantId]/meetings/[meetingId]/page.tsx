@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/avatar';
@@ -46,6 +47,8 @@ import { cn, formatDate, formatDuration, getMeetingStatusColor } from '@/lib/uti
 import type { Meeting } from '@/types/schema';
 import { Timestamp } from 'firebase/firestore';
 import { useMeeting, useMembers } from '@/hooks/use-firestore';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { runAction } from '@/lib/actions/client';
 
 function formatMeetingTime(start: Timestamp, end: Timestamp): string {
   const startDate = start.toDate();
@@ -84,6 +87,36 @@ export default function MeetingDetailPage() {
   const meeting = meetingOverride || fetchedMeeting;
   const [activeTab, setActiveTab] = useState('overview');
   const [isGeneratingMinutes, setIsGeneratingMinutes] = useState(false);
+
+  const saveAgendaAction = useAsyncAction({
+    action: async () => {
+      const { auth } = await import('@/lib/firebase');
+      const token = await auth.currentUser?.getIdToken();
+      const first = meeting.agendaItems[0];
+      if (!first) return;
+      await runAction({
+        url: `/api/meetings/${meetingId}/agenda/${first.id}`,
+        method: 'PATCH',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: { tenantId, title: first.title, estimatedDuration: first.estimatedDuration, responsibleMemberId: first.responsibleMemberId },
+      });
+    },
+  });
+
+  const saveMinutesAction = useAsyncAction({
+    action: async () => {
+      const { auth } = await import('@/lib/firebase');
+      const token = await auth.currentUser?.getIdToken();
+      if (!meeting.minutes) return;
+      await runAction({
+        url: `/api/meetings/${meetingId}/minutes`,
+        method: 'PATCH',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: { tenantId, minutesDraft: meeting.minutes },
+      });
+    },
+  });
+
 
   if (meetingLoading) {
     return (
@@ -316,6 +349,7 @@ export default function MeetingDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="agenda">Agenda</TabsTrigger>
@@ -323,6 +357,11 @@ export default function MeetingDetailPage() {
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="minutes">Minutes</TabsTrigger>
         </TabsList>
+        <div className="flex gap-2">
+          {activeTab === 'agenda' && <ActionButton loading={saveAgendaAction.loading} onClick={() => saveAgendaAction.execute()}>Spara agenda</ActionButton>}
+          {activeTab === 'minutes' && <ActionButton loading={saveMinutesAction.loading} onClick={() => saveMinutesAction.execute()}>Spara utkast</ActionButton>}
+        </div>
+      </div>
 
         <TabsContent value="overview" className="mt-6">
           <div className="grid gap-6 lg:grid-cols-2">

@@ -1,202 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { collections, Timestamp, storage, ref, deleteObject } from '@/lib/firebase';
-import { getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { z } from 'zod';
+import { collections, Timestamp, getDoc, updateDoc } from '@/lib/firebase';
 import type { Document } from '@/types/schema';
-import { createAuditLog } from '@/lib/audit-service';
+import { requireTenantAccess, withIdempotency, writeAuditEvent } from '@/lib/actions/server';
 
-interface Params {
-  params: Promise<{ documentId: string }>;
-}
+interface Params { params: Promise<{ documentId: string }>; }
 
-// GET /api/documents/[documentId] - Get document details
 export async function GET(request: NextRequest, { params }: Params) {
-  try {
-    const { documentId } = await params;
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
-
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
-      );
-    }
-
-    const docRef = collections.document(tenantId, documentId);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 }
-      );
-    }
-
-    const document = {
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as Document;
-
-    return NextResponse.json({ document });
-  } catch (error) {
-    console.error('Error fetching document:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch document' },
-      { status: 500 }
-    );
-  }
+  const { documentId } = await params;
+  const tenantId = new URL(request.url).searchParams.get('tenantId');
+  if (!tenantId) return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
+  const docSnap = await getDoc(collections.document(tenantId, documentId));
+  if (!docSnap.exists()) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+  return NextResponse.json({ document: { id: docSnap.id, ...docSnap.data() } as Document });
 }
 
-// PATCH /api/documents/[documentId] - Update document metadata
+const patchSchema = z.object({
+  tenantId: z.string().min(1),
+  title: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  folderId: z.string().nullable().optional(),
+  visibility: z.enum(['internal', 'shared', 'confidential']).optional(),
+  category: z.string().optional(),
+});
+
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { documentId } = await params;
-    const body = await request.json();
-    const { tenantId, userId, userName, updates } = body;
-
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
-      );
-    }
-
-    const docRef = collections.document(tenantId, documentId);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 }
-      );
-    }
-
-    const currentDoc = docSnap.data() as Document;
-
-    // Prepare updates
-    const allowedUpdates: Partial<Document> = {};
-    if (updates.name !== undefined) allowedUpdates.name = updates.name;
-    if (updates.description !== undefined) allowedUpdates.description = updates.description;
-    if (updates.category !== undefined) allowedUpdates.category = updates.category;
-    if (updates.visibility !== undefined) allowedUpdates.visibility = updates.visibility;
-    if (updates.tags !== undefined) allowedUpdates.tags = updates.tags;
-    if (updates.meetingIds !== undefined) allowedUpdates.meetingIds = updates.meetingIds;
-    if (updates.agendaItemIds !== undefined) allowedUpdates.agendaItemIds = updates.agendaItemIds;
-
-    // Always update timestamp
-    const finalUpdates = {
-      ...allowedUpdates,
-      updatedAt: Timestamp.now(),
-    };
-
-    await updateDoc(docRef, finalUpdates);
-
-    // Create audit log
-    await createAuditLog({
-      tenantId,
-      action: 'document.updated',
-      resourceType: 'document',
-      resourceId: documentId,
-      actorId: userId || 'unknown',
-      actorName: userName || 'Unknown',
-      changes: Object.entries(allowedUpdates).map(([field, newValue]) => ({
-        field,
-        oldValue: currentDoc[field as keyof Document],
-        newValue,
-      })),
+    const body = patchSchema.parse(await request.json());
+    const user = await requireTenantAccess(request, body.tenantId, ['owner', 'admin', 'secretary']);
+    const result = await withIdempotency(body.tenantId, request.headers.get('x-idempotency-key'), async () => {
+      const docRef = collections.document(body.tenantId, documentId);
+      await updateDoc(docRef, {
+        ...(body.title !== undefined ? { name: body.title } : {}),
+        ...(body.tags !== undefined ? { tags: body.tags } : {}),
+        ...(body.folderId !== undefined ? { folderId: body.folderId } : {}),
+        ...(body.visibility !== undefined ? { visibility: body.visibility } : {}),
+        ...(body.category !== undefined ? { category: body.category } : {}),
+        updatedAt: Timestamp.now(),
+        updatedBy: user.uid,
+      });
+      await writeAuditEvent(body.tenantId, user.uid, 'doc.update', 'success', { documentId });
+      return { ok: true, documentId };
     });
-
-    return NextResponse.json({
-      success: true,
-      document: {
-        ...currentDoc,
-        ...finalUpdates,
-        id: documentId,
-      },
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error updating document:', error);
-    return NextResponse.json(
-      { error: 'Failed to update document' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to update document' }, { status: 422 });
   }
 }
 
-// DELETE /api/documents/[documentId] - Delete document
+const deleteSchema = z.object({ tenantId: z.string().min(1) });
+
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const { documentId } = await params;
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
-    const userId = searchParams.get('userId');
-    const userName = searchParams.get('userName');
-    const hardDelete = searchParams.get('hardDelete') === 'true';
-
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
-      );
-    }
-
-    const docRef = collections.document(tenantId, documentId);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 }
-      );
-    }
-
-    const document = docSnap.data() as Document;
-
-    if (hardDelete) {
-      // Delete file from storage
-      if (storage && document.storagePath) {
-        try {
-          const storageRef = ref(storage, document.storagePath);
-          await deleteObject(storageRef);
-        } catch (storageError) {
-          console.warn('Failed to delete file from storage:', storageError);
-          // Continue with Firestore deletion even if storage delete fails
-        }
-      }
-
-      // Delete Firestore document
-      await deleteDoc(docRef);
-    } else {
-      // Soft delete - mark as archived
-      await updateDoc(docRef, {
+    const body = deleteSchema.parse(await request.json());
+    const user = await requireTenantAccess(request, body.tenantId, ['owner', 'admin']);
+    const result = await withIdempotency(body.tenantId, request.headers.get('x-idempotency-key'), async () => {
+      await updateDoc(collections.document(body.tenantId, documentId), {
+        deletedAt: Timestamp.now(),
+        deletedBy: user.uid,
         isArchived: true,
-        updatedAt: Timestamp.now(),
       });
-    }
-
-    // Create audit log
-    await createAuditLog({
-      tenantId,
-      action: hardDelete ? 'document.deleted' : 'document.archived',
-      resourceType: 'document',
-      resourceId: documentId,
-      actorId: userId || 'unknown',
-      actorName: userName || 'Unknown',
-      metadata: {
-        fileName: document.name,
-        hardDelete,
-      },
+      await writeAuditEvent(body.tenantId, user.uid, 'doc.delete', 'success', { documentId });
+      return { ok: true, documentId };
     });
-
-    return NextResponse.json({
-      success: true,
-      message: hardDelete ? 'Document permanently deleted' : 'Document archived',
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error deleting document:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete document' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to delete document' }, { status: 422 });
   }
 }

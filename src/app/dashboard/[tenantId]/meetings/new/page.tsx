@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,6 +41,7 @@ import {
 } from '@/lib/meeting-templates';
 import { useMembers } from '@/hooks/use-firestore';
 import { useAsyncAction } from '@/hooks/use-async-action';
+import { runAction } from '@/lib/actions/client';
 
 const roleLabels: Record<MemberRole, string> = {
   owner: 'Owner',
@@ -199,13 +201,11 @@ export default function NewMeetingPage() {
 
       const { auth } = await import('@/lib/firebase');
       const token = await auth.currentUser?.getIdToken();
-      const response = await fetch('/api/meetings', {
+      return runAction({
+        url: '/api/meetings',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: {
           tenantId,
           title: form.title,
           description: form.description,
@@ -222,15 +222,8 @@ export default function NewMeetingPage() {
           },
           attendeeIds: form.selectedMemberIds,
           quorumRequired: form.quorumRequired,
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || 'Failed to create meeting');
-      }
-
-      return response.json();
     },
     onSuccess: async (createdMeeting) => {
       router.push(`/dashboard/${tenantId}/meetings/${createdMeeting.id}`);
@@ -723,9 +716,9 @@ export default function NewMeetingPage() {
               <Button variant="outline" onClick={() => setStep(2)}>
                 Back
               </Button>
-              <Button onClick={handleSubmit} disabled={!isStep3Valid} isLoading={createMeetingAction.loading}>
-                Create Meeting
-              </Button>
+              <ActionButton onClick={handleSubmit} disabled={!isStep3Valid} loading={createMeetingAction.loading}>
+                Skapa möte
+              </ActionButton>
             </div>
           </CardContent>
         </Card>

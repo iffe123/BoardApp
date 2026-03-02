@@ -24,6 +24,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -67,6 +68,8 @@ import { cn, formatFileSize, formatRelativeDate } from '@/lib/utils';
 import type { Document, DocumentCategory } from '@/types/schema';
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { collections, onSnapshot, query, orderBy, where, db } from '@/lib/firebase';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { runAction } from '@/lib/actions/client';
 
 type ViewMode = 'grid' | 'list';
 
@@ -221,25 +224,20 @@ export default function DocumentsPage() {
     }
   }, [uploadFiles, tenantId, user, userProfile, uploadCategory, uploadDescription, uploadVisibility, uploadTags]);
 
-  // Handle document delete
-  const handleDelete = useCallback(async (documentId: string) => {
-    try {
-      const response = await fetch(
-        `/api/documents/${documentId}?tenantId=${tenantId}&userId=${user?.uid}&userName=${encodeURIComponent(userProfile?.displayName || 'Unknown')}`,
-        { method: 'DELETE' }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete document');
-      }
-
-      setDeleteDocId(null);
-    } catch (err) {
-      console.error('Delete error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete document');
-    }
-  }, [tenantId, user, userProfile]);
+  const deleteAction = useAsyncAction({
+    action: async (documentId: string) => {
+      const { auth } = await import('@/lib/firebase');
+      const token = await auth.currentUser?.getIdToken();
+      await runAction({
+        url: `/api/documents/${documentId}`,
+        method: 'DELETE',
+        body: { tenantId },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+    },
+    onSuccess: async () => setDeleteDocId(null),
+    onError: async (err) => setError(err.message),
+  });
 
   // Handle document download
   const handleDownload = useCallback((doc: Document) => {
@@ -394,14 +392,14 @@ export default function DocumentsPage() {
                 }}>
                   Cancel
                 </Button>
-                <Button onClick={handleUpload} disabled={!uploadFiles || uploading}>
+                <ActionButton onClick={handleUpload} disabled={!uploadFiles || uploading} loading={uploading}>
                   {uploading ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Upload className="h-4 w-4 mr-2" />
                   )}
                   {uploading ? 'Uploading...' : 'Upload'}
-                </Button>
+                </ActionButton>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -664,7 +662,7 @@ export default function DocumentsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteDocId && handleDelete(deleteDocId)}
+              onClick={() => deleteDocId && deleteAction.execute(deleteDocId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete

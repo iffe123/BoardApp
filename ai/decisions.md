@@ -25,3 +25,17 @@
 - **Why**: Governance workflows require accountability, explainability, and legal caution.
 
 - 2026-03-01: Adopted WebAuthn as a step-up factor (not passwordless) for tenant policy enforcement. This preserves existing Firebase first-factor flows while enabling passkey/YubiKey enforcement per tenant and role.
+
+## ADR: Action Layer applied to core modules (Aktiebok, Documents, Meetings)
+- Standardized endpoints:
+  - `POST /api/shareholders`, `PATCH /api/shareholders/[id]`, `DELETE /api/shareholders/[id]`
+  - `POST /api/documents/folders`, `PATCH /api/documents/[documentId]`, `DELETE /api/documents/[documentId]`
+  - `POST /api/meetings`, `PATCH /api/meetings/[meetingId]/agenda/[agendaItemId]`, `PATCH /api/meetings/[meetingId]/minutes`
+- Firestore paths:
+  - `tenants/{tenantId}/shareholders/{shareholderId}`
+  - `tenants/{tenantId}/documents/{documentId}` and folder entries in documents collection
+  - `tenants/{tenantId}/meetings/{meetingId}`
+  - `tenants/{tenantId}/action_audit_events/*` for action runs + audit events
+- Idempotency policy:
+  - Every write endpoint in these modules requires `x-idempotency-key`
+  - `withIdempotency` stores action response and replays it for duplicate submissions, preventing duplicate writes from double-clicks and retries.
