@@ -574,7 +574,7 @@ export default function SettingsPage() {
       <div className="p-8">
         <Card className="p-12 text-center">
           <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
+          <h2 className="text-xl font-medium mb-2">Access Restricted</h2>
           <p className="text-muted-foreground">
             You need administrator privileges to access settings.
           </p>
@@ -587,7 +587,7 @@ export default function SettingsPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-1">
           Manage your organization settings and integrations
         </p>
@@ -861,7 +861,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-green-100 flex items-center justify-center">
-                      <span className="font-bold text-green-600">F</span>
+                      <span className="font-medium text-green-600">F</span>
                     </div>
                     <div>
                       <p className="font-medium">Fortnox</p>
@@ -880,7 +880,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-blue-100 flex items-center justify-center">
-                      <span className="font-bold text-blue-600">V</span>
+                      <span className="font-medium text-blue-600">V</span>
                     </div>
                     <div>
                       <p className="font-medium">Visma</p>
@@ -893,7 +893,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-purple-100 flex items-center justify-center">
-                      <span className="font-bold text-purple-600">PE</span>
+                      <span className="font-medium text-purple-600">PE</span>
                     </div>
                     <div>
                       <p className="font-medium">PE Accounting</p>
@@ -916,7 +916,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-blue-900 flex items-center justify-center">
-                      <span className="font-bold text-white text-xs">BankID</span>
+                      <span className="font-medium text-white text-xs">BankID</span>
                     </div>
                     <div>
                       <p className="font-medium">Swedish BankID</p>
@@ -1012,7 +1012,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-blue-100 flex items-center justify-center">
-                      <span className="font-bold text-blue-600">O</span>
+                      <span className="font-medium text-blue-600">O</span>
                     </div>
                     <div>
                       <p className="font-medium">Microsoft 365</p>
@@ -1068,7 +1068,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded bg-red-100 flex items-center justify-center">
-                      <span className="font-bold text-red-600">G</span>
+                      <span className="font-medium text-red-600">G</span>
                     </div>
                     <div>
                       <p className="font-medium">Google Workspace</p>
@@ -1447,7 +1447,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between p-6 rounded-lg border-2 border-primary bg-primary/5">
                     <div>
                       <Badge className="mb-2">Professional</Badge>
-                      <p className="text-2xl font-bold">2,990 SEK/month</p>
+                      <p className="text-2xl font-medium">2,990 SEK/month</p>
                       <p className="text-sm text-muted-foreground">
                         Up to 10 board members · Unlimited meetings
                       </p>

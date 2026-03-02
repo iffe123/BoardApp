@@ -58,44 +58,70 @@
   }
 }
 
-/* Lighter fonts for dashboard/app pages */
-.dashboard-light-fonts {
-  font-weight: 200;
+.app-shell {
+  --app-surface: 0 0% 100%;
+  --app-surface-muted: 210 33% 98%;
+  --app-border: 214 22% 90%;
+  --app-shadow: 220 30% 20%;
+  --app-radius: 0.75rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-.dashboard-light-fonts h1,
-.dashboard-light-fonts h2,
-.dashboard-light-fonts h3,
-.dashboard-light-fonts h4,
-.dashboard-light-fonts h5,
-.dashboard-light-fonts h6 {
-  font-weight: 300;
+.app-shell h1,
+.app-shell h2,
+.app-shell h3,
+.app-shell h4,
+.app-shell h5,
+.app-shell h6 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
-.dashboard-light-fonts strong,
-.dashboard-light-fonts b {
+.app-shell label,
+.app-shell strong,
+.app-shell b {
   font-weight: 400;
 }
 
-/* Step down Tailwind font-weight utilities within dashboard */
-.dashboard-light-fonts [class~="font-black"] {
+.app-shell [class~="font-black"],
+.app-shell [class~="font-extrabold"],
+.app-shell [class~="font-bold"] {
   font-weight: 500 !important;
 }
 
-.dashboard-light-fonts [class~="font-extrabold"] {
+.app-shell [class~="font-semibold"],
+.app-shell [class~="font-medium"] {
   font-weight: 400 !important;
 }
 
-.dashboard-light-fonts [class~="font-bold"] {
-  font-weight: 300 !important;
+.app-shell .app-surface,
+.app-shell [data-app-surface='true'] {
+  border-color: hsl(var(--app-border));
+  background: hsl(var(--app-surface));
+  box-shadow: 0 1px 2px hsl(var(--app-shadow) / 0.05);
 }
 
-.dashboard-light-fonts [class~="font-semibold"] {
-  font-weight: 300 !important;
+.app-shell .app-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: hsl(var(--app-surface-muted));
 }
 
-.dashboard-light-fonts [class~="font-medium"] {
-  font-weight: 200 !important;
+.app-shell .app-table th {
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.app-shell .app-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.app-shell .app-table tbody tr:hover {
+  background: hsl(var(--app-surface-muted));
 }
 
 /* Custom scrollbar */

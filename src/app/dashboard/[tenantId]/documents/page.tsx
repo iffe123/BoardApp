@@ -272,7 +272,7 @@ export default function DocumentsPage() {
       <div className="p-8">
         <Card className="p-12 text-center">
           <Loader2 className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-spin" />
-          <h3 className="text-lg font-semibold mb-2">Loading documents...</h3>
+          <h3 className="text-lg font-medium mb-2">Loading documents...</h3>
           <p className="text-muted-foreground">Fetching your documents</p>
         </Card>
       </div>
@@ -284,7 +284,7 @@ export default function DocumentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
+          <h1 className="text-3xl font-medium tracking-tight">Documents</h1>
           <p className="text-muted-foreground mt-1">
             Manage board packs, minutes, and company documents
           </p>
@@ -436,7 +436,7 @@ export default function DocumentsPage() {
           >
             <CardContent className="p-4">
               <div className="text-sm text-muted-foreground">{label}</div>
-              <div className="text-2xl font-bold">{documentsByCategory[category] || 0}</div>
+              <div className="text-2xl font-medium">{documentsByCategory[category] || 0}</div>
             </CardContent>
           </Card>
         ))}
@@ -505,7 +505,7 @@ export default function DocumentsPage() {
       {filteredDocuments.length === 0 && (
         <Card className="p-12 text-center">
           <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No documents found</h3>
+          <h3 className="text-lg font-medium mb-2">No documents found</h3>
           <p className="text-muted-foreground mb-4">
             {searchQuery || filterCategory !== 'all'
               ? 'Try adjusting your filters or search query'

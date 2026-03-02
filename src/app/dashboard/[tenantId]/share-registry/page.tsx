@@ -214,7 +214,7 @@ export default function ShareRegistryPage() {
         <div className="flex items-center gap-3 mb-8">
           <BookOpen className="h-8 w-8" />
           <div>
-            <h1 className="text-3xl font-bold">Aktiebok</h1>
+            <h1 className="text-3xl font-medium">Aktiebok</h1>
             <p className="text-muted-foreground">Laddar...</p>
           </div>
         </div>
@@ -241,7 +241,7 @@ export default function ShareRegistryPage() {
         <div className="flex items-center gap-3">
           <BookOpen className="h-8 w-8" />
           <div>
-            <h1 className="text-3xl font-bold">Aktiebok</h1>
+            <h1 className="text-3xl font-medium">Aktiebok</h1>
             <p className="text-muted-foreground">
               Digital aktiebok enligt Aktiebolagslagen 5 kap.
             </p>

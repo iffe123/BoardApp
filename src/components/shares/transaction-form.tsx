@@ -155,11 +155,16 @@ export function TransactionForm({
         nominalValue: 1,
         votesPerShare: 1,
       });
-    } catch {
-      // Error feedback is rendered via actionError from action audit harness.
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+    onError: (error) => {
+      setFormError(error instanceof Error ? error.message : 'Kunde inte registrera transaktionen.');
+    },
+  });
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFormError(null);
+    await submitAction.execute(formData);
   };
 
   const updateShareCount = (from: number, to: number) => {
@@ -192,16 +197,16 @@ export function TransactionForm({
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="app-table w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-2 font-medium">Datum</th>
-                  <th className="text-left py-3 px-2 font-medium">Typ</th>
-                  <th className="text-left py-3 px-2 font-medium">Beskrivning</th>
-                  <th className="text-left py-3 px-2 font-medium">Aktieslag</th>
-                  <th className="text-right py-3 px-2 font-medium">Antal</th>
-                  <th className="text-right py-3 px-2 font-medium">Aktienr</th>
-                  <th className="text-right py-3 px-2 font-medium">Pris/aktie</th>
+                  <th className="text-left py-2.5 px-2 font-medium">Datum</th>
+                  <th className="text-left py-2.5 px-2 font-medium">Typ</th>
+                  <th className="text-left py-2.5 px-2 font-medium">Beskrivning</th>
+                  <th className="text-left py-2.5 px-2 font-medium">Aktieslag</th>
+                  <th className="text-right py-2.5 px-2 font-medium">Antal</th>
+                  <th className="text-right py-2.5 px-2 font-medium">Aktienr</th>
+                  <th className="text-right py-2.5 px-2 font-medium">Pris/aktie</th>
                 </tr>
               </thead>
               <tbody>

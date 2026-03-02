@@ -131,7 +131,7 @@ function NavLink({ item, isActive }: NavLinkProps) {
     <Link
       href={item.href}
       className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal transition-colors',
         isActive
           ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -188,7 +188,7 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcher
                   {currentTenant?.name || 'Select Organization'}
                 </p>
                 {isDemo && (
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                     DEMO
                   </span>
                 )}
@@ -234,7 +234,7 @@ function OrgSwitcher({ currentTenant, tenants, onSwitch, onCreate }: OrgSwitcher
         >
           <FlaskConical className="h-4 w-4 mr-2 text-amber-500" />
           <span>{demoTenant.name}</span>
-          <span className="ml-auto inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+          <span className="ml-auto inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
             DEMO
           </span>
         </DropdownMenuItem>
@@ -395,14 +395,14 @@ export function Sidebar({ tenant, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex h-screen w-64 flex-col border-r bg-card',
+        'flex h-screen w-64 flex-col border-r bg-card/80 backdrop-blur-sm',
         className
       )}
     >
       {/* Logo / Brand */}
       <div className="flex h-16 items-center gap-2 border-b px-4">
         <Briefcase className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">GovernanceOS</span>
+        <span className="text-lg font-medium tracking-tight">GovernanceOS</span>
       </div>
 
       {/* Organization Switcher */}
