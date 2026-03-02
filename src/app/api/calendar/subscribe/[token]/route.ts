@@ -40,7 +40,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Subscription not found or revoked' }, { status: 404 });
   }
 
-  const subscription = subscriptionSnapshot.docs[0].data() as CalendarSubscription;
+  const subscriptionDoc = subscriptionSnapshot.docs.at(0);
+  if (!subscriptionDoc) {
+    return NextResponse.json({ error: 'Subscription not found or revoked' }, { status: 404 });
+  }
+
+  const subscription = subscriptionDoc.data() as CalendarSubscription;
   const meetingsSnapshot = await getDocs(collections.meetings(subscription.tenantId));
 
   const meetings = meetingsSnapshot.docs
@@ -56,31 +61,31 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return (meeting as Meeting & { boardroomId?: string }).boardroomId === subscription.boardroomId;
     });
 
-  const events: CalendarEventData[] = meetings
-    .map((meeting) => {
-      const scheduledStart = toDate(meeting.scheduledStart);
-      const scheduledEnd = toDate(meeting.scheduledEnd);
-      if (!scheduledStart || !scheduledEnd) {
-        return null;
-      }
+  const events = meetings.reduce<CalendarEventData[]>((acc, meeting) => {
+    const scheduledStart = toDate(meeting.scheduledStart);
+    const scheduledEnd = toDate(meeting.scheduledEnd);
+    if (!scheduledStart || !scheduledEnd) {
+      return acc;
+    }
 
-      return {
-        uid: `meeting-${meeting.id}@boardapp`,
-        title: meeting.title,
-        description: meeting.description,
-        startTime: scheduledStart,
-        endTime: scheduledEnd,
-        timezone: meeting.timezone || 'UTC',
-        location: meeting.location,
-        organizer: {
-          email: 'no-reply@boardapp.local',
-          name: 'BoardApp',
-        },
-        status: meeting.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED',
-        sequence: 0,
-      } satisfies CalendarEventData;
-    })
-    .filter((event): event is CalendarEventData => Boolean(event));
+    acc.push({
+      uid: `meeting-${meeting.id}@boardapp`,
+      title: meeting.title,
+      description: meeting.description,
+      startTime: scheduledStart,
+      endTime: scheduledEnd,
+      timezone: meeting.timezone || 'UTC',
+      location: meeting.location,
+      organizer: {
+        email: 'no-reply@boardapp.local',
+        name: 'BoardApp',
+      },
+      status: meeting.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED',
+      sequence: 0,
+    });
+
+    return acc;
+  }, []);
 
   const ical = generateICalFeed(events, {
     calendarName: `BoardApp ${subscription.scope === 'boardroom' ? 'Boardroom' : 'Tenant'} Meetings`,
