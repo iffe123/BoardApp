@@ -806,6 +806,17 @@ export interface Decision {
     enforceForDashboard: boolean;
   };
 
+  voting?: {
+    enabled: boolean;
+    type: 'majority' | 'unanimous' | 'custom';
+    customThreshold?: number;
+    quorumRequired?: number | string;
+    status: 'draft' | 'open' | 'closed';
+    openedAt?: Timestamp;
+    closedAt?: Timestamp;
+    result?: 'approved' | 'rejected';
+  };
+
   // Metadata
   decidedAt: Timestamp;
   recordedBy: string;
@@ -813,19 +824,13 @@ export interface Decision {
   updatedAt: Timestamp;
 }
 
-// /tenants/{tenantId}/actions/{actionId}
-export interface ExecutionAction {
+export interface DecisionVote {
   id: string;
-  tenantId: string;
-  decisionId?: string;
-  ownerUserId: string;
-  title: string;
-  description?: string;
-  dueDate: Timestamp;
-  status: 'open' | 'in_progress' | 'done' | 'overdue';
-  completionPercentage?: number;
-  createdAt: Timestamp;
-  completedAt?: Timestamp;
+  userId: string;
+  vote: 'for' | 'against' | 'abstain';
+  votedAt: Timestamp;
+  weight?: number;
+  comment?: string;
 }
 
 // ============================================================================

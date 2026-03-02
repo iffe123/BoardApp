@@ -186,6 +186,14 @@ export const collections = {
 
   meetings: (tenantId: string) => collection(db, 'tenants', tenantId, 'meetings'),
   meeting: (tenantId: string, meetingId: string) => doc(db, 'tenants', tenantId, 'meetings', meetingId),
+  meetingDecisions: (tenantId: string, meetingId: string) =>
+    collection(db, 'tenants', tenantId, 'meetings', meetingId, 'decisions'),
+  meetingDecision: (tenantId: string, meetingId: string, decisionId: string) =>
+    doc(db, 'tenants', tenantId, 'meetings', meetingId, 'decisions', decisionId),
+  meetingDecisionVotes: (tenantId: string, meetingId: string, decisionId: string) =>
+    collection(db, 'tenants', tenantId, 'meetings', meetingId, 'decisions', decisionId, 'votes'),
+  meetingDecisionVote: (tenantId: string, meetingId: string, decisionId: string, voteId: string) =>
+    doc(db, 'tenants', tenantId, 'meetings', meetingId, 'decisions', decisionId, 'votes', voteId),
   minutesReviews: (tenantId: string, meetingId: string) =>
     collection(db, 'tenants', tenantId, 'meetings', meetingId, 'minutesReviews'),
   minutesReview: (tenantId: string, meetingId: string, reviewId: string) =>
