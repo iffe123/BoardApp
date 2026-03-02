@@ -156,16 +156,7 @@ export function TransactionForm({
         votesPerShare: 1,
       });
     },
-    onError: (error) => {
-      setFormError(error instanceof Error ? error.message : 'Kunde inte registrera transaktionen.');
-    },
   });
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setFormError(null);
-    await submitAction.execute(formData);
-  };
 
   const updateShareCount = (from: number, to: number) => {
     setFormData({
