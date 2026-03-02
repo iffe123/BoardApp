@@ -67,6 +67,13 @@ const outcomeColors: Record<DecisionOutcome, string> = {
   pending: 'bg-blue-100 text-blue-800 border-blue-200',
 };
 
+
+const executionStatusLabel = (decision: Decision) => {
+  if (!decision.actionItems || decision.actionItems.length === 0) return 'Not started';
+  if (decision.actionItems.every((item) => item.status === 'completed')) return 'Completed';
+  return 'In progress';
+};
+
 export default function DecisionsPage() {
   const params = useParams();
   const tenantId = params.tenantId as string;
@@ -290,6 +297,7 @@ export default function DecisionsPage() {
                     <span className="text-sm text-muted-foreground font-mono">
                       {decision.decisionNumber}
                     </span>
+                    <Badge variant="secondary">{executionStatusLabel(decision)}</Badge>
                     {decision.recusedMemberIds.length > 0 && (
                       <Badge variant="warning" className="gap-1">
                         <AlertTriangle className="h-3 w-3" />

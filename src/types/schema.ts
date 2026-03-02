@@ -30,6 +30,7 @@ export type FinancialPeriodType = 'monthly' | 'quarterly' | 'annual';
 // Share Registry (Aktiebok) types
 export type ShareClass = 'A' | 'B' | 'C' | 'preference' | 'common';
 export type ShareTransactionType = 'founding' | 'new_issue' | 'transfer' | 'split' | 'redemption' | 'bonus_issue';
+export type ImpactCategory = 'finance' | 'strategy' | 'operations' | 'risk' | 'other';
 
 // ============================================================================
 // USER MODEL - Global collection (/users/{userId})
@@ -793,6 +794,9 @@ export interface Decision {
   // Links
   relatedDocumentIds: string[];
   relatedDecisionIds: string[];
+  impactCategory?: ImpactCategory;
+  expectedImpact?: string;
+  linkedKpiIds?: string[];
 
 
   securityPolicy?: {
@@ -807,6 +811,21 @@ export interface Decision {
   recordedBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+// /tenants/{tenantId}/actions/{actionId}
+export interface ExecutionAction {
+  id: string;
+  tenantId: string;
+  decisionId?: string;
+  ownerUserId: string;
+  title: string;
+  description?: string;
+  dueDate: Timestamp;
+  status: 'open' | 'in_progress' | 'done' | 'overdue';
+  completionPercentage?: number;
+  createdAt: Timestamp;
+  completedAt?: Timestamp;
 }
 
 // ============================================================================

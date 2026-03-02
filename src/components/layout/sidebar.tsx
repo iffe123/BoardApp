@@ -100,6 +100,11 @@ const getNavItems = (tenantId: string): NavItem[] => [
     icon: <Shield className="h-5 w-5" />,
   },
   {
+    label: 'Execution',
+    href: `/dashboard/${tenantId}/execution`,
+    icon: <Briefcase className="h-5 w-5" />,
+  },
+  {
     label: 'Aktiebok',
     href: `/dashboard/${tenantId}/share-registry`,
     icon: <BookOpen className="h-5 w-5" />,
