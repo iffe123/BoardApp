@@ -802,11 +802,31 @@ export interface Decision {
     enforceForDashboard: boolean;
   };
 
+  voting?: {
+    enabled: boolean;
+    type: 'majority' | 'unanimous' | 'custom';
+    customThreshold?: number;
+    quorumRequired?: number | string;
+    status: 'draft' | 'open' | 'closed';
+    openedAt?: Timestamp;
+    closedAt?: Timestamp;
+    result?: 'approved' | 'rejected';
+  };
+
   // Metadata
   decidedAt: Timestamp;
   recordedBy: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+export interface DecisionVote {
+  id: string;
+  userId: string;
+  vote: 'for' | 'against' | 'abstain';
+  votedAt: Timestamp;
+  weight?: number;
+  comment?: string;
 }
 
 // ============================================================================

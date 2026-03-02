@@ -144,6 +144,11 @@ export async function POST(request: NextRequest) {
       implementationStatus: 'pending',
       relatedDocumentIds: relatedDocumentIds || [],
       relatedDecisionIds: [],
+      voting: {
+        enabled: false,
+        type: 'majority',
+        status: 'draft',
+      },
       decidedAt: Timestamp.now(),
       recordedBy: user.uid,
       createdAt: Timestamp.now(),
