@@ -222,6 +222,8 @@ export const collections = {
   notifications: (tenantId: string) => collection(db, 'tenants', tenantId, 'notifications'),
   signatures: (tenantId: string) => collection(db, 'tenants', tenantId, 'signatures'),
   signature: (tenantId: string, signatureId: string) => doc(db, 'tenants', tenantId, 'signatures', signatureId),
+  exports: (tenantId: string) => collection(db, 'tenants', tenantId, 'exports'),
+  exportJob: (tenantId: string, exportId: string) => doc(db, 'tenants', tenantId, 'exports', exportId),
 
   // Share Registry (Aktiebok)
   shareholders: (tenantId: string) => collection(db, 'tenants', tenantId, 'shareholders'),

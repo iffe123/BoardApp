@@ -857,7 +857,7 @@ export interface AuditLog {
 
   // Action details
   action: string; // 'meeting.created', 'document.signed', etc.
-  resourceType: 'meeting' | 'document' | 'member' | 'financial' | 'decision' | 'settings';
+  resourceType: 'meeting' | 'document' | 'member' | 'financial' | 'decision' | 'settings' | 'export';
   resourceId: string;
 
   // Actor
@@ -878,6 +878,31 @@ export interface AuditLog {
 
   // Timestamp
   timestamp: Timestamp;
+}
+
+
+export interface TenantExport {
+  id: string;
+  tenantId: string;
+  createdBy: string;
+  createdAt: Timestamp;
+  status: 'generating' | 'ready' | 'failed';
+  parameters: {
+    from: string;
+    to: string;
+    boardrooms: string[];
+    contentTypes: string[];
+  };
+  storagePath: string;
+  manifest: Array<{
+    filename: string;
+    sha256: string;
+    documentId?: string;
+    createdAt: string;
+  }>;
+  checksum: string;
+  downloadData?: string;
+  errorMessage?: string;
 }
 
 // ============================================================================
