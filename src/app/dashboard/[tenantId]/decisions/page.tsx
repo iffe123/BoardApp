@@ -70,7 +70,6 @@ const outcomeColors: Record<DecisionOutcome, string> = {
   pending: 'bg-blue-100 text-blue-800 border-blue-200',
 };
 
-
 export default function DecisionsPage() {
   const params = useParams();
   const tenantId = params.tenantId as string;
