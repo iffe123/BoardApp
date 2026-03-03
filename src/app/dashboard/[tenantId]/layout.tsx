@@ -84,7 +84,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const isDemo = isDemoTenant(tenantId);
 
   return (
-    <div className="flex h-screen bg-background dashboard-light-fonts">
+    <div className="app-shell flex h-screen bg-background">
       <Sidebar tenant={isDemo ? demoTenant : currentTenant} />
       <main className="flex-1 overflow-auto">
         {isDemo && (
