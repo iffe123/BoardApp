@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { AuthError, authErrorResponse, verifySession, verifyTenantAccess } from '@/lib/auth/verify-session';
 import { requireTenantAccess, withIdempotency, writeAuditEvent } from '@/lib/actions/server';
 import { toErrorResponse } from '@/lib/actions/errors';
+import type { Shareholder } from '@/types/schema';
 
 const updateSchema = z.object({
   tenantId: z.string().min(1),
@@ -42,7 +43,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 422 });
     const user = await requireTenantAccess(request, parsed.data.tenantId, ['owner', 'admin']);
     const result = await withIdempotency(parsed.data.tenantId, request.headers.get('x-idempotency-key'), async () => {
-      await shareholdersDAL.update(parsed.data.tenantId, id, { ...parsed.data, updatedBy: user.uid });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { tenantId: _tid, ...updateFields } = parsed.data;
+      await shareholdersDAL.update(parsed.data.tenantId, id, updateFields as Partial<Shareholder>);
       await writeAuditEvent(parsed.data.tenantId, user.uid, 'shareholder.update', 'success', { shareholderId: id });
       return { shareholderId: id };
     });

@@ -40,7 +40,7 @@ import {
 import { useAuth, usePermissions } from '@/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 
-const toBase64Url = (buffer: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+const toBase64Url = (buffer: ArrayBuffer) => btoa(String.fromCharCode(...Array.from(new Uint8Array(buffer)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 const fromBase64Url = (value: string) => {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
@@ -404,7 +404,7 @@ export default function SettingsPage() {
       const compliance = (settings as Record<string, unknown>).compliance as Record<string, unknown> || {};
       setDocumentRetentionYears(String(compliance.documentRetentionYears || 7));
 
-      const securityPolicy = (currentTenant as Record<string, unknown>).securityPolicy as Record<string, unknown> || {};
+      const securityPolicy = (currentTenant as unknown as Record<string, unknown>).securityPolicy as Record<string, unknown> || {};
       setRequireWebAuthnStepUp(Boolean(securityPolicy.requireWebAuthnStepUp));
       setSessionTtlHours(String(securityPolicy.sessionTtlHours || 12));
       setRequireRoles((securityPolicy.requireWebAuthnForRoles as string[] | undefined) || []);

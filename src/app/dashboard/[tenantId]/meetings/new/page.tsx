@@ -195,13 +195,13 @@ export default function NewMeetingPage() {
 
 
   const createMeetingAction = useAsyncAction({
-    action: async () => {
+    action: async (): Promise<{ id: string }> => {
       const startDate = new Date(`${form.date}T${form.startTime}`);
       const endDate = new Date(`${form.date}T${form.endTime}`);
 
       const { auth } = await import('@/lib/firebase');
       const token = await auth.currentUser?.getIdToken();
-      return runAction({
+      return runAction<{ id: string }>({
         url: '/api/meetings',
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -225,7 +225,7 @@ export default function NewMeetingPage() {
         },
       });
     },
-    onSuccess: async (createdMeeting) => {
+    onSuccess: async (createdMeeting: { id: string }) => {
       router.push(`/dashboard/${tenantId}/meetings/${createdMeeting.id}`);
     },
     errorMessage: 'Failed to create meeting',

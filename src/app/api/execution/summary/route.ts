@@ -3,8 +3,22 @@ import { getDocs } from 'firebase/firestore';
 import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
 import { collections } from '@/lib/firebase';
 import { logger } from '@/lib/logger';
-import type { Decision, ExecutionAction } from '@/types/schema';
-import { computeExecutionSummary, type ExecutionActionItem } from '@/lib/execution';
+import type { Decision } from '@/types/schema';
+import { computeExecutionSummary, type ExecutionActionItem, type ExecutionActionStatus } from '@/lib/execution';
+import type { Timestamp } from 'firebase/firestore';
+
+interface ExecutionAction {
+  tenantId: string;
+  decisionId: string;
+  ownerUserId: string;
+  title: string;
+  description: string;
+  dueDate: Timestamp;
+  status: ExecutionActionStatus;
+  completionPercentage: number;
+  createdAt: Timestamp;
+  completedAt?: Timestamp;
+}
 
 export async function GET(request: NextRequest) {
   try {
