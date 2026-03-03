@@ -4,7 +4,7 @@ import { updateDoc } from 'firebase/firestore';
 import { collections, Timestamp } from '@/lib/firebase';
 import { requireTenantAccess, withIdempotency, writeAuditEvent } from '@/lib/actions/server';
 
-const schema = z.object({ tenantId: z.string().min(1), minutesDraft: z.record(z.any()) });
+const schema = z.object({ tenantId: z.string().min(1), minutesDraft: z.record(z.string(), z.any()) });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ meetingId: string }> }) {
   try {

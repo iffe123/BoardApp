@@ -92,13 +92,14 @@ export default function MeetingDetailPage() {
     action: async () => {
       const { auth } = await import('@/lib/firebase');
       const token = await auth.currentUser?.getIdToken();
+      if (!meeting) return;
       const first = meeting.agendaItems[0];
       if (!first) return;
       await runAction({
         url: `/api/meetings/${meetingId}/agenda/${first.id}`,
         method: 'PATCH',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: { tenantId, title: first.title, estimatedDuration: first.estimatedDuration, responsibleMemberId: first.responsibleMemberId },
+        body: { tenantId, title: first.title, estimatedDuration: first.estimatedDuration, presenterId: first.presenterId },
       });
     },
   });
@@ -107,7 +108,7 @@ export default function MeetingDetailPage() {
     action: async () => {
       const { auth } = await import('@/lib/firebase');
       const token = await auth.currentUser?.getIdToken();
-      if (!meeting.minutes) return;
+      if (!meeting?.minutes) return;
       await runAction({
         url: `/api/meetings/${meetingId}/minutes`,
         method: 'PATCH',

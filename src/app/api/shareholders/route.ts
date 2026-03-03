@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { AuthError, authErrorResponse, verifySession, verifyTenantAccess } from '@/lib/auth/verify-session';
 import { requireTenantAccess, withIdempotency, writeAuditEvent } from '@/lib/actions/server';
 import { toErrorResponse } from '@/lib/actions/errors';
+import type { Shareholder } from '@/types/schema';
 
 const createShareholderSchema = z.object({
   tenantId: z.string().min(1),
@@ -51,9 +52,7 @@ export async function POST(request: NextRequest) {
         ...parsed.data,
         tenantId: parsed.data.tenantId,
         isActive: true,
-        createdBy: user.uid,
-        updatedBy: user.uid,
-      });
+      } as Omit<Shareholder, 'id' | 'createdAt' | 'updatedAt'>);
       await writeAuditEvent(parsed.data.tenantId, user.uid, 'shareholder.create', 'success', { shareholderId });
       return { shareholderId };
     });

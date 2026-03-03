@@ -84,6 +84,21 @@ export const shareholdersDAL = {
   },
 
   /**
+   * Soft-delete a shareholder by marking isActive = false.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async softDelete(tenantId: string, shareholderId: string, deletedBy: string): Promise<void> {
+    const ref = collections.shareholder(tenantId, shareholderId);
+    await updateDoc(ref, { isActive: false, updatedAt: Timestamp.now() });
+
+    logger.info('Shareholder soft-deleted', {
+      orgId: tenantId,
+      action: 'shareholder.soft_deleted',
+      metadata: { shareholderId },
+    });
+  },
+
+  /**
    * Delete a shareholder (only if no active shares).
    */
   async remove(tenantId: string, shareholderId: string): Promise<void> {

@@ -1,11 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 
+interface WebAuthnOptionsJSON {
+  challenge: string;
+  allowCredentials?: Array<{ id: string; type: string }>;
+  timeout?: number;
+  rpId?: string;
+  userVerification?: UserVerificationRequirement;
+}
+
 interface ApiResult {
-  options?: PublicKeyCredentialRequestOptions;
+  options?: WebAuthnOptionsJSON;
   noCredentials?: boolean;
   bypass?: boolean;
   error?: string;
@@ -18,9 +26,17 @@ const fromBase64Url = (value: string) => {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 };
 
-const toBase64Url = (buffer: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+const toBase64Url = (buffer: ArrayBuffer) => btoa(String.fromCharCode(...Array.from(new Uint8Array(buffer)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 
 export default function WebAuthnStepUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>}>
+      <WebAuthnStepUpContent />
+    </Suspense>
+  );
+}
+
+function WebAuthnStepUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tenantId = useMemo(() => searchParams.get('tenantId') || '', [searchParams]);
@@ -55,11 +71,13 @@ export default function WebAuthnStepUpPage() {
         }
 
         setMessage('Touch your security key or use your passkey...');
-        const options = payload.options as PublicKeyCredentialRequestOptions & { challenge: string; allowCredentials?: Array<{ id: string; type: string }> };
+        const options = payload.options;
         const publicKey: PublicKeyCredentialRequestOptions = {
-          ...options,
           challenge: fromBase64Url(options.challenge),
           allowCredentials: options.allowCredentials?.map((item) => ({ ...item, id: fromBase64Url(item.id) })) as PublicKeyCredentialDescriptor[] | undefined,
+          timeout: options.timeout,
+          rpId: options.rpId,
+          userVerification: options.userVerification,
         };
         const credential = await navigator.credentials.get({ publicKey }) as PublicKeyCredential;
         if (!credential) throw new Error('No credential returned');

@@ -25,10 +25,10 @@ export async function POST(
     if (!targetReviewer) return NextResponse.json({ error: 'Only reviewers can approve' }, { status: 403 });
 
     const updatedReviewers = review.reviewers.map((reviewer) =>
-      reviewer.userId === user.uid ? { ...reviewer, status: 'approved', respondedAt: Timestamp.now() } : reviewer
+      reviewer.userId === user.uid ? { ...reviewer, status: 'approved' as const, respondedAt: Timestamp.now() } : reviewer
     );
 
-    const status = updateReviewStatusAfterApproval(review.status, updatedReviewers.map((r) => r.status));
+    const status = updateReviewStatusAfterApproval(review.status, updatedReviewers.map((r) => r.status) as Array<'pending' | 'approved' | 'changes_requested'>);
 
     await updateDoc(reviewRef, {
       reviewers: updatedReviewers,

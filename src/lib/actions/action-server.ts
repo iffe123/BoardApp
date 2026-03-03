@@ -64,7 +64,7 @@ export async function withIdempotency<T>(
   });
 
   if (!transactionResult.shouldExecute) {
-    return transactionResult.cachedPayload;
+    return transactionResult.cachedPayload as T;
   }
 
   try {

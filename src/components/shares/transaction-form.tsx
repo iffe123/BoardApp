@@ -158,6 +158,12 @@ export function TransactionForm({
     },
   });
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    submitAction.execute(formData);
+  };
+
   const updateShareCount = (from: number, to: number) => {
     setFormData({
       ...formData,
