@@ -168,10 +168,10 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl font-light tracking-tight">
           {getGreeting()}, {userProfile?.displayName?.split(' ')[0] || 'there'}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 font-light">
           Here&apos;s what&apos;s happening at {currentTenant?.name || 'your organization'}
         </p>
       </div>
@@ -179,57 +179,49 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming Meetings</p>
-                <p className="text-3xl font-bold">{stats.upcomingMeetings}</p>
+                <p className="text-xs font-light text-muted-foreground uppercase tracking-wide">Upcoming Meetings</p>
+                <p className="text-2xl font-light mt-1">{stats.upcomingMeetings}</p>
               </div>
-              <div className="rounded-full bg-blue-100 p-3">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
+              <Calendar className="h-4 w-4 text-muted-foreground/50" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Signatures</p>
-                <p className="text-3xl font-bold">{stats.pendingSignatures}</p>
+                <p className="text-xs font-light text-muted-foreground uppercase tracking-wide">Pending Signatures</p>
+                <p className="text-2xl font-light mt-1">{stats.pendingSignatures}</p>
               </div>
-              <div className="rounded-full bg-amber-100 p-3">
-                <FileText className="h-6 w-6 text-amber-600" />
-              </div>
+              <FileText className="h-4 w-4 text-muted-foreground/50" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Open Action Items</p>
-                <p className="text-3xl font-bold">{stats.openActionItems}</p>
+                <p className="text-xs font-light text-muted-foreground uppercase tracking-wide">Open Action Items</p>
+                <p className="text-2xl font-light mt-1">{stats.openActionItems}</p>
               </div>
-              <div className="rounded-full bg-red-100 p-3">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
+              <AlertCircle className="h-4 w-4 text-muted-foreground/50" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Documents This Month</p>
-                <p className="text-3xl font-bold">{stats.documentsThisMonth}</p>
+                <p className="text-xs font-light text-muted-foreground uppercase tracking-wide">Documents This Month</p>
+                <p className="text-2xl font-light mt-1">{stats.documentsThisMonth}</p>
               </div>
-              <div className="rounded-full bg-green-100 p-3">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
+              <CheckCircle className="h-4 w-4 text-muted-foreground/50" />
             </div>
           </CardContent>
         </Card>
@@ -260,15 +252,13 @@ export default function DashboardPage() {
                 <Link
                   key={meeting.id}
                   href={`/dashboard/${tenantId}/meetings/${meeting.id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-md hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-primary/10 p-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                    </div>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{meeting.title}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm font-light">{meeting.title}</p>
+                      <p className="text-xs text-muted-foreground font-light">
                         {formatRelativeDate(meeting.scheduledAt)}
                       </p>
                     </div>
@@ -277,7 +267,7 @@ export default function DashboardPage() {
                     <Badge variant="outline" className={getMeetingTypeBadge(meeting.type)}>
                       {meeting.type}
                     </Badge>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
                   </div>
                 </Link>
               ))}
@@ -339,10 +329,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 rounded-lg bg-muted/50">
+                <div className="p-4 rounded-md bg-accent/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Revenue (Latest)</span>
-                    <div className={`flex items-center text-sm ${financialSnapshot.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className="text-xs font-light text-muted-foreground uppercase tracking-wide">Revenue (Latest)</span>
+                    <div className={`flex items-center text-xs font-light ${financialSnapshot.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {financialSnapshot.revenueChange >= 0 ? (
                         <TrendingUp className="h-3 w-3 mr-1" />
                       ) : (
@@ -351,13 +341,13 @@ export default function DashboardPage() {
                       {Math.abs(financialSnapshot.revenueChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.revenue, 'SEK')}</p>
+                  <p className="text-xl font-light">{formatCurrency(financialSnapshot.revenue, 'SEK')}</p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-muted/50">
+                <div className="p-4 rounded-md bg-accent/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Net Income (Latest)</span>
-                    <div className={`flex items-center text-sm ${financialSnapshot.netIncomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className="text-xs font-light text-muted-foreground uppercase tracking-wide">Net Income (Latest)</span>
+                    <div className={`flex items-center text-xs font-light ${financialSnapshot.netIncomeChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {financialSnapshot.netIncomeChange >= 0 ? (
                         <TrendingUp className="h-3 w-3 mr-1" />
                       ) : (
@@ -366,13 +356,13 @@ export default function DashboardPage() {
                       {Math.abs(financialSnapshot.netIncomeChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.netIncome, 'SEK')}</p>
+                  <p className="text-xl font-light">{formatCurrency(financialSnapshot.netIncome, 'SEK')}</p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-muted/50">
+                <div className="p-4 rounded-md bg-accent/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Cash Balance</span>
-                    <div className={`flex items-center text-sm ${financialSnapshot.cashChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className="text-xs font-light text-muted-foreground uppercase tracking-wide">Cash Balance</span>
+                    <div className={`flex items-center text-xs font-light ${financialSnapshot.cashChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {financialSnapshot.cashChange >= 0 ? (
                         <TrendingUp className="h-3 w-3 mr-1" />
                       ) : (
@@ -381,7 +371,7 @@ export default function DashboardPage() {
                       {Math.abs(financialSnapshot.cashChange).toFixed(1)}%
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financialSnapshot.cashBalance, 'SEK')}</p>
+                  <p className="text-xl font-light">{formatCurrency(financialSnapshot.cashBalance, 'SEK')}</p>
                 </div>
               </div>
             </CardContent>
@@ -397,38 +387,38 @@ export default function DashboardPage() {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2">
               <Link href={`/dashboard/${tenantId}/meetings/new`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <Calendar className="h-5 w-5 mr-3" />
+                <Button variant="outline" className="w-full justify-start h-auto py-3.5">
+                  <Calendar className="h-4 w-4 mr-3 text-muted-foreground" />
                   <div className="text-left">
-                    <p className="font-medium">Schedule Meeting</p>
-                    <p className="text-xs text-muted-foreground">Create a new board meeting</p>
+                    <p className="text-sm font-light">Schedule Meeting</p>
+                    <p className="text-xs text-muted-foreground font-light">Create a new board meeting</p>
                   </div>
                 </Button>
               </Link>
               <Link href={`/dashboard/${tenantId}/documents`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <FileText className="h-5 w-5 mr-3" />
+                <Button variant="outline" className="w-full justify-start h-auto py-3.5">
+                  <FileText className="h-4 w-4 mr-3 text-muted-foreground" />
                   <div className="text-left">
-                    <p className="font-medium">Upload Document</p>
-                    <p className="text-xs text-muted-foreground">Add files to the repository</p>
+                    <p className="text-sm font-light">Upload Document</p>
+                    <p className="text-xs text-muted-foreground font-light">Add files to the repository</p>
                   </div>
                 </Button>
               </Link>
               <Link href={`/dashboard/${tenantId}/members`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <Users className="h-5 w-5 mr-3" />
+                <Button variant="outline" className="w-full justify-start h-auto py-3.5">
+                  <Users className="h-4 w-4 mr-3 text-muted-foreground" />
                   <div className="text-left">
-                    <p className="font-medium">Manage Members</p>
-                    <p className="text-xs text-muted-foreground">Invite or update members</p>
+                    <p className="text-sm font-light">Manage Members</p>
+                    <p className="text-xs text-muted-foreground font-light">Invite or update members</p>
                   </div>
                 </Button>
               </Link>
               <Link href={`/dashboard/${tenantId}/financials`}>
-                <Button variant="outline" className="w-full justify-start h-auto py-4">
-                  <BarChart3 className="h-5 w-5 mr-3" />
+                <Button variant="outline" className="w-full justify-start h-auto py-3.5">
+                  <BarChart3 className="h-4 w-4 mr-3 text-muted-foreground" />
                   <div className="text-left">
-                    <p className="font-medium">View Financials</p>
-                    <p className="text-xs text-muted-foreground">Check latest reports</p>
+                    <p className="text-sm font-light">View Financials</p>
+                    <p className="text-xs text-muted-foreground font-light">Check latest reports</p>
                   </div>
                 </Button>
               </Link>

@@ -71,53 +71,53 @@ const getNavItems = (tenantId: string): NavItem[] => [
   {
     label: 'Dashboard',
     href: `/dashboard/${tenantId}`,
-    icon: <LayoutDashboard className="h-5 w-5" />,
+    icon: <LayoutDashboard className="h-4 w-4" />,
   },
   {
     label: 'Meetings',
     href: `/dashboard/${tenantId}/meetings`,
-    icon: <Calendar className="h-5 w-5" />,
+    icon: <Calendar className="h-4 w-4" />,
   },
   {
     label: 'Documents',
     href: `/dashboard/${tenantId}/documents`,
-    icon: <FileText className="h-5 w-5" />,
+    icon: <FileText className="h-4 w-4" />,
   },
   {
     label: 'Financials',
     href: `/dashboard/${tenantId}/financials`,
-    icon: <BarChart3 className="h-5 w-5" />,
+    icon: <BarChart3 className="h-4 w-4" />,
     requiredPermission: 'canViewFinancials',
   },
   {
     label: 'Årshjul',
     href: `/dashboard/${tenantId}/annual-planner`,
-    icon: <CircleDot className="h-5 w-5" />,
+    icon: <CircleDot className="h-4 w-4" />,
   },
   {
     label: 'Decisions',
     href: `/dashboard/${tenantId}/decisions`,
-    icon: <Shield className="h-5 w-5" />,
+    icon: <Shield className="h-4 w-4" />,
   },
   {
     label: 'Execution',
     href: `/dashboard/${tenantId}/execution`,
-    icon: <Briefcase className="h-5 w-5" />,
+    icon: <Briefcase className="h-4 w-4" />,
   },
   {
     label: 'Aktiebok',
     href: `/dashboard/${tenantId}/share-registry`,
-    icon: <BookOpen className="h-5 w-5" />,
+    icon: <BookOpen className="h-4 w-4" />,
   },
   {
     label: 'Members',
     href: `/dashboard/${tenantId}/members`,
-    icon: <Users className="h-5 w-5" />,
+    icon: <Users className="h-4 w-4" />,
   },
   {
     label: 'Settings',
     href: `/dashboard/${tenantId}/settings`,
-    icon: <Settings className="h-5 w-5" />,
+    icon: <Settings className="h-4 w-4" />,
     requiredPermission: 'isAdmin',
   },
 ];
@@ -136,10 +136,10 @@ function NavLink({ item, isActive }: NavLinkProps) {
     <Link
       href={item.href}
       className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-light transition-colors',
         isActive
-          ? 'bg-primary text-primary-foreground'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          ? 'bg-accent text-foreground'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
       )}
     >
       {item.icon}
@@ -314,21 +314,21 @@ function ThemeToggle() {
   const { resolvedTheme, toggleTheme } = useTheme();
 
   return (
-    <div className="border-t p-2">
+    <div className="px-2 py-1">
       <Button
         variant="ghost"
-        className="w-full justify-start gap-3 px-3"
+        className="w-full justify-start gap-3 px-3 text-muted-foreground"
         onClick={toggleTheme}
       >
         {resolvedTheme === 'dark' ? (
           <>
-            <Sun className="h-5 w-5" />
-            <span>Light Mode</span>
+            <Sun className="h-4 w-4" />
+            <span className="text-sm font-light">Light Mode</span>
           </>
         ) : (
           <>
-            <Moon className="h-5 w-5" />
-            <span>Dark Mode</span>
+            <Moon className="h-4 w-4" />
+            <span className="text-sm font-light">Dark Mode</span>
           </>
         )}
       </Button>
@@ -400,18 +400,18 @@ export function Sidebar({ tenant, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex h-screen w-64 flex-col border-r bg-card',
+        'flex h-screen w-64 flex-col bg-card',
         className
       )}
     >
       {/* Logo / Brand */}
-      <div className="flex h-16 items-center gap-2 border-b px-4">
-        <Briefcase className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">GovernanceOS</span>
+      <div className="flex h-16 items-center gap-2 px-4">
+        <Briefcase className="h-5 w-5 text-primary" />
+        <span className="text-lg font-light tracking-tight">GovernanceOS</span>
       </div>
 
       {/* Organization Switcher */}
-      <div className="border-b p-2">
+      <div className="px-2 pb-2">
         <OrgSwitcher
           currentTenant={tenant}
           tenants={accessibleTenants}
@@ -434,15 +434,15 @@ export function Sidebar({ tenant, className }: SidebarProps) {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
+          <p className="px-3 text-xs font-light text-muted-foreground uppercase tracking-widest mb-2">
             Quick Actions
           </p>
           <div className="space-y-1">
             <Link
               href={`/dashboard/${tenantId}/meetings/new`}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-light text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
               New Meeting
             </Link>
           </div>
@@ -453,7 +453,7 @@ export function Sidebar({ tenant, className }: SidebarProps) {
       <ThemeToggle />
 
       {/* User Menu */}
-      <div className="border-t p-2">
+      <div className="px-2 pb-2">
         <UserMenu />
       </div>
     </aside>

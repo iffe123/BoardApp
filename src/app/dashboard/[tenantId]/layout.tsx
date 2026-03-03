@@ -88,10 +88,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <Sidebar tenant={isDemo ? demoTenant : currentTenant} />
       <main className="flex-1 overflow-auto">
         {isDemo && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 text-sm text-amber-800">
-            <FlaskConical className="h-4 w-4" />
+          <div className="bg-amber-500/10 px-4 py-2 flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 font-light">
+            <FlaskConical className="h-3.5 w-3.5" />
             <span>
-              <strong>Demo mode</strong> &mdash; This is a test organization with sample data. Changes are not saved.
+              Demo mode &mdash; This is a test organization with sample data. Changes are not saved.
             </span>
           </div>
         )}
