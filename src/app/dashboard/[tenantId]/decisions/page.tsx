@@ -71,12 +71,6 @@ const outcomeColors: Record<DecisionOutcome, string> = {
 };
 
 
-const executionStatusLabel = (decision: Decision) => {
-  if (!decision.actionItems || decision.actionItems.length === 0) return 'Not started';
-  if (decision.actionItems.every((item) => item.status === 'completed')) return 'Completed';
-  return 'In progress';
-};
-
 export default function DecisionsPage() {
   const params = useParams();
   const tenantId = params.tenantId as string;

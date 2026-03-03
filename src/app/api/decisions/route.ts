@@ -145,6 +145,9 @@ export async function POST(request: NextRequest) {
         ? Timestamp.fromDate(new Date(implementationDeadline))
         : undefined,
       implementationStatus: 'pending',
+      impactCategory: impactCategory || undefined,
+      expectedImpact: expectedImpact || undefined,
+      linkedKpiIds: linkedKpiIds || [],
       relatedDocumentIds: relatedDocumentIds || [],
       relatedDecisionIds: [],
       voting: {
