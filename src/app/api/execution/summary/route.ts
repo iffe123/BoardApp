@@ -3,7 +3,7 @@ import { getDocs } from 'firebase/firestore';
 import { verifySession, verifyTenantAccess, authErrorResponse, AuthError } from '@/lib/auth/verify-session';
 import { collections } from '@/lib/firebase';
 import { logger } from '@/lib/logger';
-import type { Decision, ExecutionAction } from '@/types/schema';
+import type { Decision } from '@/types/schema';
 import { computeExecutionSummary, type ExecutionActionItem } from '@/lib/execution';
 
 export async function GET(request: NextRequest) {
@@ -24,7 +24,18 @@ export async function GET(request: NextRequest) {
 
     const decisions: Decision[] = decisionsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Decision));
     const actions: ExecutionActionItem[] = actionsSnap.docs.map((doc) => {
-      const data = doc.data() as ExecutionAction;
+      const data = doc.data() as {
+        tenantId: string;
+        decisionId?: string;
+        ownerUserId: string;
+        title: string;
+        description?: string;
+        dueDate: { toDate: () => Date };
+        status: ExecutionActionItem['status'];
+        completionPercentage?: number;
+        createdAt: { toDate: () => Date };
+        completedAt?: { toDate: () => Date };
+      };
       return {
         id: doc.id,
         tenantId: data.tenantId,
